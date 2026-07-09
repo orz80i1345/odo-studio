@@ -12,7 +12,12 @@ export interface ApiClientOptions {
   baseUrl: string
   /** 取得 auth token（後台使用）；回傳 null 表示未登入 */
   getToken?: () => string | null
+  /** scaffold auth endpoints require X-API-KEY */
+  apiKey?: string
 }
+
+export type ApiQueryValue = string | number | boolean | undefined
+export type ApiQuery = Record<string, ApiQueryValue | ApiQueryValue[]>
 
 /** API 錯誤：帶 HTTP status 與後端錯誤訊息 */
 export class ApiError extends Error {
@@ -26,7 +31,7 @@ export class ApiError extends Error {
 }
 
 export interface ApiClient {
-  get: <T>(path: string, query?: Record<string, string | number | undefined>) => Promise<T>
+  get: <T>(path: string, query?: ApiQuery) => Promise<T>
   post: <T>(path: string, body?: unknown) => Promise<T>
   patch: <T>(path: string, body?: unknown) => Promise<T>
   delete: <T>(path: string) => Promise<T>
@@ -34,25 +39,29 @@ export interface ApiClient {
 
 /** 建立 API client 實例（每個 app 各建一個） */
 export function createApiClient(options: ApiClientOptions): ApiClient {
-  const { baseUrl, getToken } = options
+  const { baseUrl, getToken, apiKey } = options
 
   /** 核心 request：組 URL、帶 token、統一 JSON 與錯誤處理 */
   async function request<T>(
     method: string,
     path: string,
     body?: unknown,
-    query?: Record<string, string | number | undefined>,
+    query?: ApiQuery,
   ): Promise<T> {
     const url = new URL(baseUrl.replace(/\/$/, '') + path)
     if (query) {
       for (const [key, value] of Object.entries(query)) {
-        if (value !== undefined) url.searchParams.set(key, String(value))
+        const values = Array.isArray(value) ? value : [value]
+        for (const item of values) {
+          if (item !== undefined) url.searchParams.append(key, String(item))
+        }
       }
     }
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     const token = getToken?.()
     if (token) headers.Authorization = `Bearer ${token}`
+    if (apiKey) headers['X-API-KEY'] = apiKey
 
     const res = await fetch(url, {
       method,

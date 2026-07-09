@@ -5,10 +5,10 @@ import { useAuth } from '../auth/AuthContext'
 
 /** 我的預約列表；只有登入才會 fetch */
 export function useMyBookings() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   return useQuery({
     queryKey: queryKeys.bookings.mine,
-    queryFn: () => bookingsApi.listMyBookings(api),
+    queryFn: () => bookingsApi.listMyBookings(api, { customerEmail: user?.email }),
     enabled: isAuthenticated,
   })
 }

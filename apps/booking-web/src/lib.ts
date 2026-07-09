@@ -6,7 +6,7 @@
  *  - 在 VITE_USE_MOCK=true 或未設 VITE_API_BASE_URL 時，改走 mock/handlers
  */
 import { QueryClient } from '@tanstack/react-query'
-import { createApiClient, ApiError } from '@studio/shared'
+import { createApiClient, ApiError, type ApiQuery } from '@studio/shared'
 import { authStorage } from './auth/storage'
 import { handleMock, MockHttpError } from './mock/handlers'
 
@@ -17,11 +17,12 @@ const useMock =
 const realApi = createApiClient({
   baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api',
   getToken: () => authStorage.getToken(),
+  apiKey: import.meta.env.VITE_API_KEY,
 })
 
 /** Mock ApiClient：與 realApi 同介面，但走 handlers 而非 fetch */
 const mockApi = {
-  get: <T,>(path: string, query?: Record<string, string | number | undefined>) => call<T>('GET', path, undefined, query),
+  get: <T,>(path: string, query?: ApiQuery) => call<T>('GET', path, undefined, query),
   post: <T,>(path: string, body?: unknown) => call<T>('POST', path, body),
   patch: <T,>(path: string, body?: unknown) => call<T>('PATCH', path, body),
   delete: <T,>(path: string) => call<T>('DELETE', path),
@@ -31,13 +32,13 @@ async function call<T>(
   method: string,
   path: string,
   body?: unknown,
-  query?: Record<string, string | number | undefined>,
+  query?: ApiQuery,
 ): Promise<T> {
   const q = query
     ? '?' + new URLSearchParams(
         Object.entries(query)
           .filter(([, v]) => v !== undefined)
-          .map(([k, v]) => [k, String(v)]),
+          .flatMap(([k, v]) => (Array.isArray(v) ? v : [v]).map((item) => [k, String(item)])),
       ).toString()
     : ''
   try {

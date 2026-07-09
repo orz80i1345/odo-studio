@@ -1,0 +1,8 @@
+/* admin-web 入口樣式：主題來自 @studio/shared/theme.css
+ * 後台用 sunken 作 body 底，讓側欄與內容卡片自然浮於其上。
+ */
+@import '@studio/shared/theme.css';
+
+body {
+  background: var(--sunken);
+}

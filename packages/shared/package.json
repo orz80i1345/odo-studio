@@ -1,0 +1,30 @@
+{
+  "name": "@studio/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "共用套件：API client、型別、工具函式、UI 基礎元件與 Tailwind 主題",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": "./src/api/index.ts",
+    "./types": "./src/types/index.ts",
+    "./utils": "./src/utils/index.ts",
+    "./ui": "./src/ui/index.ts",
+    "./theme.css": "./src/styles/theme.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "zod": "^3.24.1"
+  },
+  "peerDependencies": {
+    "react": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "typescript": "^5.7.2"
+  }
+}

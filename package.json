@@ -1,0 +1,23 @@
+{
+  "name": "studio-booking-system",
+  "private": true,
+  "version": "0.1.0",
+  "description": "攝影棚預約系統 monorepo：前台預約 (booking-web) + 後台管理 (admin-web) + 共用套件 (shared)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n booking,admin -c auto \"npm:dev:booking\" \"npm:dev:admin\"",
+    "dev:booking": "npm run dev --workspace=@studio/booking-web",
+    "dev:admin": "npm run dev --workspace=@studio/admin-web",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

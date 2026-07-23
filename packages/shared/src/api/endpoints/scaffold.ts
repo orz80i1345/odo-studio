@@ -135,6 +135,7 @@ export interface RawBooking {
   cancelled_at?: string
   cancellation_reason?: string
   source?: Booking['source']
+  metadata?: unknown
   created_at?: string
   updated_at?: string
 }
@@ -335,7 +336,7 @@ export function toBookingCreate(input: CreateBookingInput, totals: { subtotal: n
     total_hours: Math.round(((+end - +start) / 3_600_000) * 100) / 100,
     headcount: input.headcount,
     purpose: input.purpose,
-    scene_ids: input.sceneIds ?? [],
+    scene_ids: JSON.stringify(input.sceneIds ?? []),
     subtotal: totals.subtotal,
     discount_amount: 0,
     tax_amount: 0,
@@ -345,6 +346,7 @@ export function toBookingCreate(input: CreateBookingInput, totals: { subtotal: n
     payment_status: 'unpaid',
     customer_note: input.customerNote,
     source: 'web',
+    metadata: '{}',
   }
 }
 

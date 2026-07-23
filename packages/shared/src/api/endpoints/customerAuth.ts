@@ -46,6 +46,7 @@ export async function customerRegister(api: ApiClient, input: RegisterInput) {
     marketing_opt_in: input.marketingOptIn ?? false,
     locale: 'zh-TW',
     is_active: true,
+    metadata: '{}',
   })))
 
   const auth = unwrapItem(await api.post<ScaffoldItemResponse<LoginResponse>>('/auth/login', {
@@ -56,7 +57,19 @@ export async function customerRegister(api: ApiClient, input: RegisterInput) {
 }
 
 export async function getCustomerMe(api: ApiClient) {
-  return api.get<CustomerAccount>('/auth/me')
+  const me = await api.get<{ id?: number; email?: string; account?: string; phone?: string; display_name?: string; displayName?: string }>('/users/me')
+  const email = me.email ?? me.account ?? ''
+  return {
+    id: me.id ?? 0,
+    email,
+    phone: me.phone,
+    displayName: me.display_name ?? me.displayName ?? email,
+    marketingOptIn: false,
+    locale: 'zh-TW',
+    isActive: true,
+    createdAt: '',
+    updatedAt: '',
+  } satisfies CustomerAccount
 }
 
 export function customerLogout(api: ApiClient) {

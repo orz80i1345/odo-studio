@@ -13,9 +13,13 @@ import { handleMock, MockHttpError } from './mock/handlers'
 const useMock =
   import.meta.env.VITE_USE_MOCK === 'true' || !import.meta.env.VITE_API_BASE_URL
 
+const apiBaseUrl = import.meta.env.DEV
+  ? `${window.location.origin}/api`
+  : (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api')
+
 /** 真實 ApiClient：從環境變數讀 baseUrl，token 由 authStorage 動態提供 */
 const realApi = createApiClient({
-  baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api',
+  baseUrl: apiBaseUrl,
   getToken: () => authStorage.getToken(),
   apiKey: import.meta.env.VITE_API_KEY,
 })

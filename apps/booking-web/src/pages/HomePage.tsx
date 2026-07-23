@@ -32,7 +32,7 @@ export function HomePage() {
             看看空間
           </Link>
           <Link to="/pricing" className="text-sm text-ink-2 hover:text-ink underline underline-offset-4">
-            價格方案 →
+            價格 →
           </Link>
         </div>
       </section>

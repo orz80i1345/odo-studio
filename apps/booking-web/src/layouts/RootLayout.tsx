@@ -93,7 +93,7 @@ export function RootLayout() {
             <ul className="space-y-1.5 text-ink-2">
               <li><Link to="/studios" className="hover:text-ink">空間介紹</Link></li>
               <li><Link to="/scenes" className="hover:text-ink">佈景展示</Link></li>
-              <li><Link to="/pricing" className="hover:text-ink">價格方案</Link></li>
+              <li><Link to="/pricing" className="hover:text-ink">價格</Link></li>
             </ul>
           </div>
           <div>

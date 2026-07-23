@@ -28,7 +28,6 @@ export function LoginPage() {
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema),
-    defaultValues: { email: 'demo@ode.studio', password: 'demo1234' },
   })
 
   const onSubmit = handleSubmit(async (values) => {
@@ -63,9 +62,7 @@ export function LoginPage() {
         </Button>
       </form>
 
-      <p className="mt-6 text-xs text-ink-3">
-        Demo 帳號已預填。目前為 mock 模式，任何 email + 6 位以上密碼皆可登入。
-      </p>
+      <p className="mt-6 text-xs text-ink-3">請使用已註冊的會員 Email 與密碼登入。</p>
     </div>
   )
 }

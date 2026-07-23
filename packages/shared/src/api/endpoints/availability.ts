@@ -23,8 +23,8 @@ export async function getMonthAvailability(api: ApiClient, studioId: ID, yearMon
     pageSize: 1000,
     filter: [
       filter('studio_id', 'eq', studioId),
-      filter('slot_date', 'gte', `${yearMonth}-01`),
-      filter('slot_date', 'lt', nextMonth),
+      filter('slot_date', 'gte', toApiDateTime(`${yearMonth}-01`)),
+      filter('slot_date', 'lt', toApiDateTime(nextMonth)),
     ],
     sort: 'slot_date,start_minute',
   })
@@ -36,9 +36,13 @@ export async function getMonthAvailability(api: ApiClient, studioId: ID, yearMon
 export async function getDaySlots(api: ApiClient, studioId: ID, date: string) {
   const res = await api.get<ScaffoldListResponse<RawTimeSlot>>('/public/time_slots', {
     pageSize: 200,
-    filter: [filter('studio_id', 'eq', studioId), filter('slot_date', 'eq', date)],
+    filter: [filter('studio_id', 'eq', studioId), filter('slot_date', 'eq', toApiDateTime(date))],
     sort: 'start_minute',
   })
   const slots = toScaffoldList(res, toTimeSlot).items.filter((slot) => dateOnly(slot.slotDate) === date)
   return daySlotList(studioId, date, slots) satisfies DaySlotList
+}
+
+function toApiDateTime(date: string): string {
+  return `${date}T00:00:00Z`
 }

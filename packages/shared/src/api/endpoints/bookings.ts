@@ -19,9 +19,15 @@ import {
 
 /** 建立預約（登入會員） */
 export async function createBooking(api: ApiClient, input: CreateBookingInput) {
-  const totals = await calculateBookingTotals(api, input)
+  const slots = await getBookingSlots(api, input)
+  if (slots.length === 0 || slots.some((slot) => slot.status !== 'available')) {
+    throw new Error('此時段已被預約或暫時不可預約，請重新選擇時段。')
+  }
+  const totals = calculateBookingTotals(slots)
   const res = await api.post<ScaffoldItemResponse<RawBooking>>('/public/bookings', toBookingCreate(input, totals))
-  return toBooking(unwrapItem(res))
+  const booking = toBooking(unwrapItem(res))
+  await syncBookingTimeSlots(api, booking, 'booked')
+  return booking
 }
 
 /** 我的預約列表（前台會員；後端由 token 判斷） */
@@ -54,25 +60,30 @@ export async function cancelBooking(api: ApiClient, bookingId: ID, reason?: stri
     cancellation_reason: reason,
     cancelled_at: new Date().toISOString(),
   })
-  return toBooking(unwrapItem(res))
+  const booking = toBooking(unwrapItem(res))
+  await syncBookingTimeSlots(api, booking, 'available')
+  return booking
 }
 
-async function calculateBookingTotals(api: ApiClient, input: CreateBookingInput) {
+async function getBookingSlots(api: ApiClient, input: Pick<CreateBookingInput, 'studioId' | 'startAt' | 'endAt'>) {
   const start = new Date(input.startAt)
   const end = new Date(input.endAt)
   const startMinute = start.getHours() * 60 + start.getMinutes()
   const endMinute = end.getHours() * 60 + end.getMinutes()
-  const slotDate = input.startAt.slice(0, 10)
+  const slotDate = localDateFromIso(input.startAt)
   const slotsRes = await api.get<ScaffoldListResponse<RawTimeSlot>>('/public/time_slots', {
     pageSize: 200,
     filter: [
       filter('studio_id', 'eq', input.studioId),
-      filter('slot_date', 'eq', slotDate),
+      filter('slot_date', 'eq', toApiDateTime(slotDate)),
       filter('start_minute', 'gte', startMinute),
       filter('end_minute', 'lte', endMinute),
     ],
   })
-  const slots = toScaffoldList(slotsRes, toTimeSlot).items
+  return toScaffoldList(slotsRes, toTimeSlot).items
+}
+
+function calculateBookingTotals(slots: ReturnType<typeof toTimeSlot>[]) {
   const subtotal = slots.length > 0
     ? slots.reduce((sum, slot) => sum + Number(slot.hourlyPrice ?? 0), 0)
     : 0
@@ -82,4 +93,36 @@ async function calculateBookingTotals(api: ApiClient, input: CreateBookingInput)
     totalPrice,
     depositAmount: Math.round(totalPrice * 0.3),
   }
+}
+
+async function syncBookingTimeSlots(api: ApiClient, booking: Booking, status: 'booked' | 'available') {
+  const start = new Date(booking.startAt)
+  const end = new Date(booking.endAt)
+  const startMinute = start.getHours() * 60 + start.getMinutes()
+  const endMinute = end.getHours() * 60 + end.getMinutes()
+  const slotDate = localDateFromIso(booking.startAt)
+  const slotsRes = await api.get<ScaffoldListResponse<RawTimeSlot>>('/public/time_slots', {
+    pageSize: 200,
+    filter: [
+      filter('studio_id', 'eq', booking.studioId),
+      filter('slot_date', 'eq', toApiDateTime(slotDate)),
+    ],
+  })
+  const slots = toScaffoldList(slotsRes, toTimeSlot).items
+  await Promise.all(slots
+    .filter((slot) => slot.startMinute < endMinute && slot.endMinute > startMinute)
+    .map((slot) => api.patch(`/public/time_slots/${slot.id}`, {
+      status,
+      booking_id: status === 'booked' ? booking.id : null,
+      metadata: '{}',
+    })))
+}
+
+function localDateFromIso(value: string): string {
+  const date = new Date(value)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function toApiDateTime(date: string): string {
+  return `${date}T00:00:00Z`
 }

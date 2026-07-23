@@ -1,19 +1,16 @@
 import { Spinner } from '@studio/shared'
 import { PageHeader } from '../components/ui/PageHeader'
-import { usePricingPlans } from '../hooks/usePricing'
 import { useStudios } from '../hooks/useStudios'
 
 export function PricingPage() {
-  const { data: plans, isLoading } = usePricingPlans()
-  const { data: studios } = useStudios()
-  const studioMap = new Map(studios?.items.map((s) => [s.id, s.name]))
+  const { data: studios, isLoading } = useStudios()
 
   return (
     <div className="space-y-10">
       <PageHeader
         eyebrow="Pricing"
-        title="價格方案"
-        subtitle="平日與假日定價分開；連續預約 4 小時以上另有優惠，詳見備註。"
+        title="價格"
+        subtitle="價格以攝影棚基本時租為準；實際結帳金額依預約時段上設定的每小時價格計算。"
       />
       {isLoading && <div className="py-16 text-center"><Spinner /></div>}
 
@@ -22,20 +19,20 @@ export function PricingPage() {
           <thead className="bg-sunken text-xs uppercase tracking-wide text-ink-2">
             <tr>
               <th className="px-4 py-3 text-left">空間</th>
-              <th className="px-4 py-3 text-left">方案</th>
-              <th className="px-4 py-3 text-left">適用日</th>
               <th className="px-4 py-3 text-right">單價 / 時</th>
-              <th className="px-4 py-3 text-right">最少</th>
+              <th className="px-4 py-3 text-right">最短預約</th>
+              <th className="px-4 py-3 text-right">預約單位</th>
+              <th className="px-4 py-3 text-right">取消期限</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {plans?.map((p) => (
-              <tr key={p.id} className="hover:bg-sunken">
-                <td className="px-4 py-3 text-ink">{studioMap.get(p.studioId) ?? '—'}</td>
-                <td className="px-4 py-3 text-ink">{p.name}</td>
-                <td className="px-4 py-3 text-ink-2">{formatWeekdays(p.appliesToWeekdays)}</td>
-                <td className="px-4 py-3 text-right text-ink">NT$ {p.hourlyPrice.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right text-ink-2">{p.minHours} 小時</td>
+            {studios?.items.map((studio) => (
+              <tr key={studio.id} className="hover:bg-sunken">
+                <td className="px-4 py-3 text-ink">{studio.name}</td>
+                <td className="px-4 py-3 text-right text-ink">NT$ {studio.defaultHourlyPrice.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right text-ink-2">{formatMinutes(studio.minBookingMinutes)}</td>
+                <td className="px-4 py-3 text-right text-ink-2">{studio.bookingIncrementMinutes} 分鐘</td>
+                <td className="px-4 py-3 text-right text-ink-2">{studio.cancellationHours} 小時前</td>
               </tr>
             ))}
           </tbody>
@@ -45,22 +42,16 @@ export function PricingPage() {
       <div className="rounded-xl border border-line bg-brand-subtle/50 p-6 text-sm text-brand-subtle-ink">
         <p className="font-medium">備註</p>
         <ul className="mt-2 space-y-1 list-disc pl-5">
-          <li>國定假日視為假日方案。</li>
-          <li>連續 4 小時以上 9 折；6 小時以上 85 折。</li>
-          <li>需先付訂金 30%（匯款），現場尾款可用信用卡或現金。</li>
+          <li>此頁顯示攝影棚基本時租；若特定日期或時段另有調整，以選擇時段時顯示的金額為準。</li>
+          <li>預約總金額會依實際選取的 time slots 加總。</li>
+          <li>需先付訂金 30%，尾款依現場或後續通知方式付款。</li>
         </ul>
       </div>
     </div>
   )
 }
 
-function formatWeekdays(days: number[]): string {
-  if (days.length === 7) return '每日'
-  const set = new Set(days)
-  const weekday = [1,2,3,4,5].every((d) => set.has(d))
-  const weekend = [0,6].every((d) => set.has(d))
-  if (weekday && !weekend) return '週一至週五'
-  if (weekend && !weekday) return '週六、週日'
-  const names = ['日','一','二','三','四','五','六']
-  return days.map((d) => `週${names[d]}`).join('、')
+function formatMinutes(minutes: number): string {
+  if (minutes % 60 === 0) return `${minutes / 60} 小時`
+  return `${minutes} 分鐘`
 }

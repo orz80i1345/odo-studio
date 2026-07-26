@@ -17,7 +17,7 @@ export function HomePage() {
       <section className="relative left-1/2 -mt-10 min-h-[calc(100vh-8rem)] w-screen -translate-x-1/2 overflow-hidden bg-sunken md:-mt-14">
         <video
           className="absolute inset-0 size-full object-cover"
-          src="/media/AdobeStock_589454568.mov"
+          src="/media/adobestock_589454568.mp4"
           autoPlay
           muted
           loop

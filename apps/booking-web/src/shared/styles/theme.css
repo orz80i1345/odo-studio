@@ -1,0 +1,359 @@
+/**
+ * theme.css — 河日 Ode Studio
+ * 攝影棚視覺系統：Tailwind v4 + OKLCH。
+ *
+ * 設計語彙
+ *   安靜、克制、留白、自然光、藝廊感、日系選物店、生活風格雜誌。
+ *   刻意避開：SaaS 藍、黑金高級感、網美粉、Tailwind 預設色。
+ *
+ * 色彩策略
+ *   全部走 OKLCH。每一色階：
+ *     - H 恆定，杜絕 hue drift。
+ *     - L 感知等距，讓「數字大小」＝「亮度差」。
+ *     - C 兩端收斂、中段最高，避免 sRGB 超界。
+ *     - 相同語意在不同色相之間採「同色階編號」而非「同絕對 C」，維持一致的鮮明度。
+ *
+ * 六個色相家族
+ *   clay      H=70    赭土。品牌主色（河日的「日」）。
+ *   moss      H=142   苔／抹茶。佐色（河岸植物）。
+ *   slate     H=245   雨天石。資訊色，取代 SaaS 藍。
+ *   neutral   H=75    紙與墨。全站骨幹，暖色偏。
+ *   amber     H=68    琥珀。警告，彩度高於 clay 以資區別。
+ *   persimmon H=28    柿紅。危險／取消，暖不刺眼。
+ */
+
+@import 'tailwindcss';
+
+/* ================================================================
+ * 1) @theme — 原始色階 + 語意 token（Tailwind v4 utility 生成）
+ * ================================================================ */
+@theme {
+  /* ---------- neutral（紙 → 墨；暖 H=75，極低 C）---------- */
+  --color-neutral-50:  oklch(0.985 0.004 75);
+  --color-neutral-100: oklch(0.968 0.006 75);
+  --color-neutral-200: oklch(0.935 0.008 75);
+  --color-neutral-300: oklch(0.880 0.010 75);
+  --color-neutral-400: oklch(0.780 0.012 75);
+  --color-neutral-500: oklch(0.620 0.014 75);
+  --color-neutral-600: oklch(0.500 0.014 75);
+  --color-neutral-700: oklch(0.400 0.012 75);
+  --color-neutral-800: oklch(0.298 0.010 75);
+  --color-neutral-900: oklch(0.218 0.008 75);
+  --color-neutral-950: oklch(0.155 0.006 75);
+
+  /* ---------- clay（品牌赭土；H=70，中低 C）---------- */
+  --color-clay-50:  oklch(0.975 0.010 70);
+  --color-clay-100: oklch(0.950 0.020 70);
+  --color-clay-200: oklch(0.905 0.038 70);
+  --color-clay-300: oklch(0.842 0.058 70);
+  --color-clay-400: oklch(0.762 0.078 70);
+  --color-clay-500: oklch(0.680 0.090 70);
+  --color-clay-600: oklch(0.575 0.094 70);
+  --color-clay-700: oklch(0.470 0.086 70);
+  --color-clay-800: oklch(0.385 0.070 70);
+  --color-clay-900: oklch(0.310 0.055 70);
+  --color-clay-950: oklch(0.225 0.040 70);
+
+  /* ---------- moss（苔／抹茶；H=142，低 C）---------- */
+  --color-moss-50:  oklch(0.978 0.008 142);
+  --color-moss-100: oklch(0.952 0.017 142);
+  --color-moss-200: oklch(0.905 0.030 142);
+  --color-moss-300: oklch(0.840 0.045 142);
+  --color-moss-400: oklch(0.760 0.055 142);
+  --color-moss-500: oklch(0.665 0.062 142);
+  --color-moss-600: oklch(0.560 0.060 142);
+  --color-moss-700: oklch(0.460 0.053 142);
+  --color-moss-800: oklch(0.375 0.043 142);
+  --color-moss-900: oklch(0.298 0.033 142);
+  --color-moss-950: oklch(0.215 0.024 142);
+
+  /* ---------- slate（雨天石；H=245，極低 C，避開 SaaS 藍）---------- */
+  --color-slate-50:  oklch(0.975 0.006 245);
+  --color-slate-100: oklch(0.950 0.012 245);
+  --color-slate-200: oklch(0.898 0.022 245);
+  --color-slate-300: oklch(0.828 0.034 245);
+  --color-slate-400: oklch(0.740 0.042 245);
+  --color-slate-500: oklch(0.640 0.046 245);
+  --color-slate-600: oklch(0.535 0.044 245);
+  --color-slate-700: oklch(0.435 0.038 245);
+  --color-slate-800: oklch(0.352 0.030 245);
+  --color-slate-900: oklch(0.278 0.022 245);
+  --color-slate-950: oklch(0.198 0.016 245);
+
+  /* ---------- amber（警告琥珀；H=68，中高 C，區隔於 clay）---------- */
+  --color-amber-50:  oklch(0.980 0.020 68);
+  --color-amber-100: oklch(0.958 0.045 68);
+  --color-amber-200: oklch(0.912 0.085 68);
+  --color-amber-300: oklch(0.856 0.125 68);
+  --color-amber-400: oklch(0.790 0.150 68);
+  --color-amber-500: oklch(0.720 0.155 68);
+  --color-amber-600: oklch(0.612 0.140 68);
+  --color-amber-700: oklch(0.502 0.115 68);
+  --color-amber-800: oklch(0.410 0.093 68);
+  --color-amber-900: oklch(0.332 0.075 68);
+  --color-amber-950: oklch(0.240 0.055 68);
+
+  /* ---------- persimmon（柿紅；H=28）---------- */
+  --color-persimmon-50:  oklch(0.975 0.012 28);
+  --color-persimmon-100: oklch(0.950 0.028 28);
+  --color-persimmon-200: oklch(0.898 0.055 28);
+  --color-persimmon-300: oklch(0.828 0.090 28);
+  --color-persimmon-400: oklch(0.735 0.130 28);
+  --color-persimmon-500: oklch(0.638 0.148 28);
+  --color-persimmon-600: oklch(0.545 0.148 28);
+  --color-persimmon-700: oklch(0.452 0.128 28);
+  --color-persimmon-800: oklch(0.368 0.102 28);
+  --color-persimmon-900: oklch(0.295 0.080 28);
+  --color-persimmon-950: oklch(0.210 0.058 28);
+
+  /* ---------- 語意 tokens（實色由 :root / .dark 提供）----------
+   * 使用方式：bg-canvas / text-ink / border-line / bg-brand text-brand-on
+   */
+  --color-canvas:   var(--canvas);
+  --color-surface:  var(--surface);
+  --color-raised:   var(--raised);
+  --color-sunken:   var(--sunken);
+
+  --color-ink:      var(--ink);
+  --color-ink-2:    var(--ink-2);
+  --color-ink-3:    var(--ink-3);
+  --color-ink-on:   var(--ink-on);
+
+  --color-line:         var(--line);
+  --color-line-strong:  var(--line-strong);
+
+  --color-brand:          var(--brand);
+  --color-brand-hover:    var(--brand-hover);
+  --color-brand-active:   var(--brand-active);
+  --color-brand-on:       var(--brand-on);
+  --color-brand-subtle:   var(--brand-subtle);
+  --color-brand-subtle-ink: var(--brand-subtle-ink);
+  --color-brand-ring:     var(--brand-ring);
+
+  --color-accent:         var(--accent);
+  --color-accent-subtle:  var(--accent-subtle);
+  --color-accent-subtle-ink: var(--accent-subtle-ink);
+
+  --color-success:          var(--success);
+  --color-success-subtle:   var(--success-subtle);
+  --color-success-subtle-ink: var(--success-subtle-ink);
+
+  --color-warning:          var(--warning);
+  --color-warning-subtle:   var(--warning-subtle);
+  --color-warning-subtle-ink: var(--warning-subtle-ink);
+
+  --color-danger:           var(--danger);
+  --color-danger-subtle:    var(--danger-subtle);
+  --color-danger-subtle-ink: var(--danger-subtle-ink);
+
+  --color-info:             var(--info);
+  --color-info-subtle:      var(--info-subtle);
+  --color-info-subtle-ink:  var(--info-subtle-ink);
+
+  --color-neutral-subtle:     var(--neutral-subtle);
+  --color-neutral-subtle-ink: var(--neutral-subtle-ink);
+
+  /* ---------- 字體 / 圓角 / 陰影 ---------- */
+  --font-sans:  'Noto Sans TC', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Noto Serif TC', 'Cormorant Garamond', ui-serif, Georgia, serif;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  /* 淺色陰影：極淡、暖色偏、貼合藝廊感 */
+  --shadow-quiet: 0 1px 2px 0 oklch(0.218 0.008 75 / 0.04);
+  --shadow-card:  0 1px 3px 0 oklch(0.218 0.008 75 / 0.06),
+                  0 1px 2px -1px oklch(0.218 0.008 75 / 0.04);
+  --shadow-raised: 0 8px 24px -12px oklch(0.218 0.008 75 / 0.12);
+}
+
+/* ================================================================
+ * 2) 淺色（light）— 預設。「日光下的紙面」。
+ *    canvas 為暖白紙，surface 為純白，deep ink 為近墨黑。
+ * ================================================================ */
+:root {
+  color-scheme: light;
+
+  --canvas:  oklch(0.985 0.004 75);  /* neutral-50，暖紙 */
+  --surface: oklch(1 0 0);           /* 純白，卡片／表格列 */
+  --raised:  oklch(1 0 0);           /* 抬起面（modal／popover）*/
+  --sunken:  oklch(0.968 0.006 75);  /* 下沉面（section 分隔）*/
+
+  --ink:    oklch(0.218 0.008 75);   /* neutral-900，主文（L=0.22 vs 白 L=1，安全）*/
+  --ink-2:  oklch(0.400 0.012 75);   /* neutral-700，次文（L=0.40，通過 <0.45 規則）*/
+  --ink-3:  oklch(0.500 0.014 75);   /* neutral-600，提示、時間戳，勿作長文 */
+  --ink-on: oklch(0.985 0.004 75);   /* 深底上的字（近白暖）*/
+
+  --line:        oklch(0.935 0.008 75);  /* neutral-200，卡片與 input 邊框 */
+  --line-strong: oklch(0.880 0.010 75);  /* neutral-300，強調邊框、divider */
+
+  /* brand — filled action。clay-700 底 + 暖白字，對比安全 */
+  --brand:         oklch(0.470 0.086 70);
+  --brand-hover:   oklch(0.385 0.070 70);
+  --brand-active:  oklch(0.310 0.055 70);
+  --brand-on:      oklch(0.985 0.004 75);
+  --brand-subtle:      oklch(0.950 0.020 70);   /* clay-100，tinted bg */
+  --brand-subtle-ink:  oklch(0.310 0.055 70);   /* clay-900 on subtle */
+  --brand-ring:    oklch(0.575 0.094 70 / 0.35);
+
+  --accent:            oklch(0.460 0.053 142);
+  --accent-subtle:     oklch(0.952 0.017 142);
+  --accent-subtle-ink: oklch(0.298 0.033 142);
+
+  --success:            oklch(0.475 0.075 150);
+  --success-subtle:     oklch(0.958 0.025 150);
+  --success-subtle-ink: oklch(0.320 0.055 150);
+
+  --warning:            oklch(0.502 0.115 68);
+  --warning-subtle:     oklch(0.958 0.045 68);
+  --warning-subtle-ink: oklch(0.410 0.093 68);
+
+  --danger:            oklch(0.452 0.128 28);
+  --danger-subtle:     oklch(0.950 0.028 28);
+  --danger-subtle-ink: oklch(0.368 0.102 28);
+
+  --info:            oklch(0.435 0.038 245);
+  --info-subtle:     oklch(0.950 0.012 245);
+  --info-subtle-ink: oklch(0.352 0.030 245);
+
+  --neutral-subtle:     oklch(0.935 0.008 75);   /* neutral-200 tint，中性 badge */
+  --neutral-subtle-ink: oklch(0.400 0.012 75);   /* neutral-700 */
+}
+
+/* ================================================================
+ * 3) 深色（dark）— 「夜間展廳」。暖炭底、暖紙字。不用純黑。
+ *    切換方式：<html class="dark"> 或以 media query 自動切換（見底部）。
+ * ================================================================ */
+.dark {
+  color-scheme: dark;
+
+  --canvas:  oklch(0.155 0.006 75);   /* neutral-950 */
+  --surface: oklch(0.218 0.008 75);   /* neutral-900 */
+  --raised:  oklch(0.298 0.010 75);   /* neutral-800 */
+  --sunken:  oklch(0.118 0.004 75);   /* 較 canvas 更深 */
+
+  --ink:    oklch(0.968 0.006 75);    /* 主文，L=0.97 vs canvas L=0.155，安全 */
+  --ink-2:  oklch(0.880 0.010 75);    /* 次文，L=0.88 > 0.75 threshold */
+  --ink-3:  oklch(0.780 0.012 75);    /* 提示文，L=0.78 剛好 */
+  --ink-on: oklch(0.155 0.006 75);    /* 淺底上的字（近墨暖）*/
+
+  --line:        oklch(0.298 0.010 75);   /* neutral-800 */
+  --line-strong: oklch(0.400 0.012 75);   /* neutral-700 */
+
+  /* dark 模式反轉：brand 提亮到 clay-400，字色回到暖墨 */
+  --brand:         oklch(0.762 0.078 70);
+  --brand-hover:   oklch(0.842 0.058 70);
+  --brand-active:  oklch(0.905 0.038 70);
+  --brand-on:      oklch(0.155 0.006 75);
+  --brand-subtle:      oklch(0.310 0.055 70 / 0.30);  /* clay-900 半透，融入暗底 */
+  --brand-subtle-ink:  oklch(0.905 0.038 70);         /* clay-200 */
+  --brand-ring:    oklch(0.762 0.078 70 / 0.45);
+
+  --accent:            oklch(0.760 0.055 142);
+  --accent-subtle:     oklch(0.298 0.033 142 / 0.30);
+  --accent-subtle-ink: oklch(0.905 0.030 142);
+
+  --success:            oklch(0.760 0.070 150);
+  --success-subtle:     oklch(0.320 0.055 150 / 0.30);
+  --success-subtle-ink: oklch(0.882 0.055 150);
+
+  --warning:            oklch(0.856 0.125 68);        /* amber-300，提亮不刺眼 */
+  --warning-subtle:     oklch(0.410 0.093 68 / 0.28);
+  --warning-subtle-ink: oklch(0.912 0.085 68);
+
+  --danger:            oklch(0.735 0.130 28);         /* persimmon-400 */
+  --danger-subtle:     oklch(0.368 0.102 28 / 0.30);
+  --danger-subtle-ink: oklch(0.828 0.090 28);
+
+  --info:            oklch(0.740 0.042 245);          /* slate-400 */
+  --info-subtle:     oklch(0.352 0.030 245 / 0.32);
+  --info-subtle-ink: oklch(0.828 0.034 245);
+
+  --neutral-subtle:     oklch(0.400 0.012 75 / 0.35);
+  --neutral-subtle-ink: oklch(0.880 0.010 75);
+
+  /* 深色陰影不再靠亮部投影，改用內描邊感的極淡陰影 */
+  --shadow-quiet: 0 1px 2px 0 oklch(0 0 0 / 0.40);
+  --shadow-card:  0 1px 3px 0 oklch(0 0 0 / 0.45),
+                  0 1px 2px -1px oklch(0 0 0 / 0.35);
+  --shadow-raised: 0 10px 30px -12px oklch(0 0 0 / 0.55);
+}
+
+/* 系統偏好自動切換（若專案未接手動切換，可依賴這個）
+ * 若已在 <html> 上顯式加 class="light" / "dark"，請將此 block 移除或改條件。
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+
+    --canvas:  oklch(0.155 0.006 75);
+    --surface: oklch(0.218 0.008 75);
+    --raised:  oklch(0.298 0.010 75);
+    --sunken:  oklch(0.118 0.004 75);
+
+    --ink:    oklch(0.968 0.006 75);
+    --ink-2:  oklch(0.880 0.010 75);
+    --ink-3:  oklch(0.780 0.012 75);
+    --ink-on: oklch(0.155 0.006 75);
+
+    --line:        oklch(0.298 0.010 75);
+    --line-strong: oklch(0.400 0.012 75);
+
+    --brand:         oklch(0.762 0.078 70);
+    --brand-hover:   oklch(0.842 0.058 70);
+    --brand-active:  oklch(0.905 0.038 70);
+    --brand-on:      oklch(0.155 0.006 75);
+    --brand-subtle:      oklch(0.310 0.055 70 / 0.30);
+    --brand-subtle-ink:  oklch(0.905 0.038 70);
+    --brand-ring:    oklch(0.762 0.078 70 / 0.45);
+
+    --accent:            oklch(0.760 0.055 142);
+    --accent-subtle:     oklch(0.298 0.033 142 / 0.30);
+    --accent-subtle-ink: oklch(0.905 0.030 142);
+
+    --success:            oklch(0.760 0.070 150);
+    --success-subtle:     oklch(0.320 0.055 150 / 0.30);
+    --success-subtle-ink: oklch(0.882 0.055 150);
+
+    --warning:            oklch(0.856 0.125 68);
+    --warning-subtle:     oklch(0.410 0.093 68 / 0.28);
+    --warning-subtle-ink: oklch(0.912 0.085 68);
+
+    --danger:            oklch(0.735 0.130 28);
+    --danger-subtle:     oklch(0.368 0.102 28 / 0.30);
+    --danger-subtle-ink: oklch(0.828 0.090 28);
+
+    --info:            oklch(0.740 0.042 245);
+    --info-subtle:     oklch(0.352 0.030 245 / 0.32);
+    --info-subtle-ink: oklch(0.828 0.034 245);
+
+    --neutral-subtle:     oklch(0.400 0.012 75 / 0.35);
+    --neutral-subtle-ink: oklch(0.880 0.010 75);
+  }
+}
+
+/* ================================================================
+ * 4) 全域基底 + focus ring
+ * ================================================================ */
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: oklch(0.905 0.038 70 / 0.55);  /* clay-200 半透，暖 highlight */
+  color: var(--ink);
+}
+
+/* 全站統一 focus ring，走 brand-ring */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}

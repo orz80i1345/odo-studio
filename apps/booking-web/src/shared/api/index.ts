@@ -1,0 +1,11 @@
+/** api 匯出口 */
+export * from './client'
+export * from './queryKeys'
+export * as studiosApi from './endpoints/studios'
+export * as scenesApi from './endpoints/scenes'
+export * as pricingApi from './endpoints/pricing'
+export * as availabilityApi from './endpoints/availability'
+export * as bookingsApi from './endpoints/bookings'
+export * as bankAccountsApi from './endpoints/bankAccounts'
+export * as customerAuthApi from './endpoints/customerAuth'
+export * as authApi from './endpoints/auth'

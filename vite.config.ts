@@ -13,6 +13,12 @@ export default defineConfig(({ mode }) => {
     root: appRoot,
     envDir: appRoot,
     plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        '@studio/shared/theme.css': resolve(appRoot, 'src/shared/styles/theme.css'),
+        '@studio/shared': resolve(appRoot, 'src/shared/index.ts'),
+      },
+    },
     server: {
       proxy: {
         '/api': {

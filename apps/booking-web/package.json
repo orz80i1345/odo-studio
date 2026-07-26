@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
-    "@studio/shared": "*",
+    "@studio/shared": "file:../../packages/shared",
     "@tanstack/react-query": "^5.62.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

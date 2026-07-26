@@ -12,28 +12,43 @@ import { StudioCard } from '../components/Studio/StudioCard'
 export function HomePage() {
   const { data } = useStudios()
   return (
-    <div className="space-y-24 md:space-y-32">
+    <div className="space-y-16 md:space-y-24">
       {/* Hero */}
-      <section className="py-8 md:py-16">
-        <p className="mb-3 text-xs uppercase tracking-[0.25em] text-ink-3">河日 · Ode Studio</p>
-        <h1 className="max-w-3xl font-serif text-4xl leading-[1.2] text-ink md:text-6xl">
-          光落下的方式，<br />
-          決定了空間的樣子。
-        </h1>
-        <p className="mt-6 max-w-xl text-ink-2 md:text-lg">
-          我們是一個位於河岸公寓樓層的攝影棚。沒有太多的裝飾，
-          只把自然光與少數佈景留在原地，等你把想拍的東西帶進來。
-        </p>
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <Link
-            to="/studios"
-            className="inline-flex h-11 items-center rounded-lg bg-brand px-6 text-sm font-medium text-brand-on hover:bg-brand-hover"
-          >
-            看看空間
-          </Link>
-          <Link to="/pricing" className="text-sm text-ink-2 hover:text-ink underline underline-offset-4">
-            價格 →
-          </Link>
+      <section className="relative left-1/2 -mt-10 min-h-[calc(100vh-8rem)] w-screen -translate-x-1/2 overflow-hidden bg-sunken md:-mt-14">
+        <video
+          className="absolute inset-0 size-full object-cover"
+          src="/media/AdobeStock_589454568.mov"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-black/45" />
+        <div className="relative flex min-h-[calc(100vh-8rem)] items-end px-6 pb-12 pt-24 md:pb-16">
+          <div className="w-full max-w-6xl">
+            <p className="mb-3 text-xs uppercase text-white/70">河日 · Ode Studio</p>
+            <h1 className="max-w-3xl font-serif text-4xl leading-[1.2] text-white md:text-6xl">
+              光落下的方式，<br />
+              決定了空間的樣子。
+            </h1>
+            <p className="mt-6 max-w-xl text-white/80 md:text-lg">
+              我們是一個位於河岸公寓樓層的攝影棚。沒有太多的裝飾，
+              只把自然光與少數佈景留在原地，等你把想拍的東西帶進來。
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                to="/studios"
+                className="inline-flex h-11 items-center rounded-lg bg-white px-6 text-sm font-medium text-black hover:bg-white/90"
+              >
+                看看空間
+              </Link>
+              <Link to="/pricing" className="text-sm text-white/80 underline underline-offset-4 hover:text-white">
+                價格 →
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 

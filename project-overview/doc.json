@@ -387,6 +387,72 @@
                 }
             }
         },
+        "/github": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Interacts with GitHub via configured intermediary API.\n\n- action: The action to perform (e.g., 'create_issue').\n- payload: The dynamic payload for the specific action.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ThirdParty"
+                ],
+                "summary": "Send GitHub Request",
+                "operationId": "post_github",
+                "parameters": [
+                    {
+                        "description": "GitHub payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.GithubRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StdResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "Send",
+                "x-gocode-info-service": "GithubService"
+            }
+        },
         "/public/admin_activity_logs": {
             "get": {
                 "description": "Retrieves a list of admin_activity_logs resources.\n\n**進階過濾 (Advanced Filtering):**\n此端點支援 `filter=[欄位],[運算子],[值]` 的格式進行過濾。\n* **AND 結合**: 若需多個條件同時成立，可重複使用 `filter` 參數 (例如 `?filter=A,eq,v1\u0026filter=B,eq,v2`)。\n* **OR 結合**: 在同一個 `filter` 參數內使用 `|` 分隔多個條件 (例如 `?filter=A,eq,v1|B,eq,v2`)。// @Description\n* **可用的 `filter` 欄位**: `id, admin_id, action, entity_type, entity_id, changes, ip_address, user_agent, request_method, request_path, status, error_message, metadata, created_at`\n\n**聚合查詢 (Meta Aggregation):**\n使用 `meta=[函式]([欄位])` 來獲取關於整個結果集的統計數據。可用的函式有 `count`, `sum`, `avg`, `max`, `min`。\n* **可用的 `meta` 欄位**: (通常為數字類型欄位)\n\n**分組查詢 (Grouping):**\n使用 `groupBy=[欄位],[欄位]` 來對結果進行分組。分組查詢的回應結構將只包含分組欄位和 `meta` 中要求的聚合欄位。\n\n**可用運算子:**\n* `eq`: 等於 (Equal)\n* `neq`: 不等於 (Not Equal)\n* `gt`: 大於 (Greater Than)\n* `gte`: 大於或等於 (Greater Than or Equal To)\n* `lt`: 小於 (Less Than)\n* `lte`: 小於或等於 (Less Than or Equal To)\n* `like`: 模糊查詢 (Substring search)\n* `in`: 包含於 (值為逗號分隔的列表, e.g., `1,2,3`)\n\n**預設過濾條件 (Default Filters):**\n\n**查詢範例:**\n`?filter=action,like,value\u0026filter=admin_id,gte,10`",
@@ -440,7 +506,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -824,7 +890,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -1165,7 +1231,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios",
                         "name": "expand",
                         "in": "query"
                     }
@@ -1549,7 +1615,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios",
                         "name": "expand",
                         "in": "query"
                     }
@@ -1608,7 +1674,7 @@
                 "x-gocode-info-service": "BankAccountsService"
             },
             "put": {
-                "description": "Replaces an entire bank_accounts resource with new data.\n\n**Required Fields:**\n* `id`  option\n* `account_name`  require\n* `bank_name`  require\n* `bank_code`  require\n* `branch_name`  option\n* `branch_code`  option\n* `account_number`  require\n* `account_holder`  require\n* `swift_code`  option\n* `display_name`  option\n* `display_order`  require\n* `is_active`  require\n* `is_default`  require\n* `studio_id`  option\n* `note`  option\n* `metadata`  require\n* `created_at`  require\n* `updated_at`  require\n* `deleted_at`  option",
+                "description": "Replaces an entire bank_accounts resource with new data.\n\n**Required Fields:**\n* `id`  option\n* `account_name`  require\n* `bank_name`  require\n* `bank_code`  option\n* `branch_name`  option\n* `branch_code`  option\n* `account_number`  option\n* `account_holder`  option\n* `swift_code`  option\n* `display_name`  option\n* `display_order`  option\n* `is_active`  require\n* `is_default`  require\n* `studio_id`  option\n* `note`  option\n* `metadata`  require\n* `created_at`  require\n* `updated_at`  require\n* `deleted_at`  option",
                 "consumes": [
                     "application/json"
                 ],
@@ -1839,7 +1905,7 @@
         },
         "/public/bookings": {
             "get": {
-                "description": "Retrieves a list of bookings resources.\n\n**進階過濾 (Advanced Filtering):**\n此端點支援 `filter=[欄位],[運算子],[值]` 的格式進行過濾。\n* **AND 結合**: 若需多個條件同時成立，可重複使用 `filter` 參數 (例如 `?filter=A,eq,v1\u0026filter=B,eq,v2`)。\n* **OR 結合**: 在同一個 `filter` 參數內使用 `|` 分隔多個條件 (例如 `?filter=A,eq,v1|B,eq,v2`)。// @Description\n* **可用的 `filter` 欄位**: `id, booking_number, studio_id, customer_account_id, customer_name, customer_phone, customer_email, start_at, end_at, total_hours, headcount, purpose, scene_ids, pricing_plan_id, subtotal, discount_amount, discount_code, tax_amount, total_price, deposit_amount, status, payment_status, customer_note, admin_note, confirmed_at, checked_in_at, completed_at, cancelled_at, cancellation_reason, cancelled_by_admin_id, source, referral_code, created_by_admin_id, metadata, created_at, updated_at`\n\n**聚合查詢 (Meta Aggregation):**\n使用 `meta=[函式]([欄位])` 來獲取關於整個結果集的統計數據。可用的函式有 `count`, `sum`, `avg`, `max`, `min`。\n* **可用的 `meta` 欄位**: (通常為數字類型欄位)\n\n**分組查詢 (Grouping):**\n使用 `groupBy=[欄位],[欄位]` 來對結果進行分組。分組查詢的回應結構將只包含分組欄位和 `meta` 中要求的聚合欄位。\n\n**可用運算子:**\n* `eq`: 等於 (Equal)\n* `neq`: 不等於 (Not Equal)\n* `gt`: 大於 (Greater Than)\n* `gte`: 大於或等於 (Greater Than or Equal To)\n* `lt`: 小於 (Less Than)\n* `lte`: 小於或等於 (Less Than or Equal To)\n* `like`: 模糊查詢 (Substring search)\n* `in`: 包含於 (值為逗號分隔的列表, e.g., `1,2,3`)\n\n**預設過濾條件 (Default Filters):**\n\n**查詢範例:**\n`?filter=booking_number,like,value\u0026filter=studio_id,gte,10`",
+                "description": "Retrieves a list of bookings resources.\n\n**進階過濾 (Advanced Filtering):**\n此端點支援 `filter=[欄位],[運算子],[值]` 的格式進行過濾。\n* **AND 結合**: 若需多個條件同時成立，可重複使用 `filter` 參數 (例如 `?filter=A,eq,v1\u0026filter=B,eq,v2`)。\n* **OR 結合**: 在同一個 `filter` 參數內使用 `|` 分隔多個條件 (例如 `?filter=A,eq,v1|B,eq,v2`)。// @Description\n* **可用的 `filter` 欄位**: `id, booking_number, studio_id, customer_account_id, customer_name, customer_phone, customer_email, start_at, end_at, total_hours, headcount, purpose, scene_ids, pricing_plan_id, subtotal, discount_amount, discount_code, tax_amount, total_price, deposit_amount, status, payment_status, customer_note, admin_note, confirmed_at, checked_in_at, completed_at, cancelled_at, cancellation_reason, cancelled_by_admin_id, source, referral_code, created_by_admin_id, metadata, created_at, updated_at, subtotal_price`\n\n**聚合查詢 (Meta Aggregation):**\n使用 `meta=[函式]([欄位])` 來獲取關於整個結果集的統計數據。可用的函式有 `count`, `sum`, `avg`, `max`, `min`。\n* **可用的 `meta` 欄位**: (通常為數字類型欄位)\n\n**分組查詢 (Grouping):**\n使用 `groupBy=[欄位],[欄位]` 來對結果進行分組。分組查詢的回應結構將只包含分組欄位和 `meta` 中要求的聚合欄位。\n\n**可用運算子:**\n* `eq`: 等於 (Equal)\n* `neq`: 不等於 (Not Equal)\n* `gt`: 大於 (Greater Than)\n* `gte`: 大於或等於 (Greater Than or Equal To)\n* `lt`: 小於 (Less Than)\n* `lte`: 小於或等於 (Less Than or Equal To)\n* `like`: 模糊查詢 (Substring search)\n* `in`: 包含於 (值為逗號分隔的列表, e.g., `1,2,3`)\n\n**預設過濾條件 (Default Filters):**\n\n**查詢範例:**\n`?filter=booking_number,like,value\u0026filter=studio_id,gte,10`",
                 "consumes": [
                     "application/json"
                 ],
@@ -1866,13 +1932,13 @@
                     },
                     {
                         "type": "string",
-                        "description": "欄位: `id, booking_number, studio_id, customer_account_id, customer_name, customer_phone, customer_email, start_at, end_at, total_hours, headcount, purpose, scene_ids, pricing_plan_id, subtotal, discount_amount, discount_code, tax_amount, total_price, deposit_amount, status, payment_status, customer_note, admin_note, confirmed_at, checked_in_at, completed_at, cancelled_at, cancellation_reason, cancelled_by_admin_id, source, referral_code, created_by_admin_id, metadata, created_at, updated_at`",
+                        "description": "欄位: `id, booking_number, studio_id, customer_account_id, customer_name, customer_phone, customer_email, start_at, end_at, total_hours, headcount, purpose, scene_ids, pricing_plan_id, subtotal, discount_amount, discount_code, tax_amount, total_price, deposit_amount, status, payment_status, customer_note, admin_note, confirmed_at, checked_in_at, completed_at, cancelled_at, cancellation_reason, cancelled_by_admin_id, source, referral_code, created_by_admin_id, metadata, created_at, updated_at, subtotal_price`",
                         "name": "filter",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Sort order (e.g., updated_at_asc). 可用的 `sort` 欄位: `id, booking_number, studio_id, customer_account_id, customer_name, customer_phone, customer_email, start_at, end_at, total_hours, headcount, purpose, scene_ids, pricing_plan_id, subtotal, discount_amount, discount_code, tax_amount, total_price, deposit_amount, status, payment_status, customer_note, admin_note, confirmed_at, checked_in_at, completed_at, cancelled_at, cancellation_reason, cancelled_by_admin_id, source, referral_code, created_by_admin_id, metadata, created_at, updated_at`",
+                        "description": "Sort order (e.g., subtotal_price_asc). 可用的 `sort` 欄位: `id, booking_number, studio_id, customer_account_id, customer_name, customer_phone, customer_email, start_at, end_at, total_hours, headcount, purpose, scene_ids, pricing_plan_id, subtotal, discount_amount, discount_code, tax_amount, total_price, deposit_amount, status, payment_status, customer_note, admin_note, confirmed_at, checked_in_at, completed_at, cancelled_at, cancellation_reason, cancelled_by_admin_id, source, referral_code, created_by_admin_id, metadata, created_at, updated_at, subtotal_price`",
                         "name": "sort",
                         "in": "query"
                     },
@@ -1890,7 +1956,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios, customer_accounts, pricing_plans, studio_admin_accounts, studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios, customer_accounts, pricing_plans, studio_admin_accounts, studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -1946,7 +2012,7 @@
                 "x-gocode-info-service": "BookingsService"
             },
             "post": {
-                "description": "**Validation Rules:**\n**Validation Rules:** `booking_number`:\n**Validation Rules:** `studio_id`:\n**Validation Rules:** `customer_account_id`:\n**Validation Rules:** `customer_name`:\n**Validation Rules:** `customer_phone`:\n**Validation Rules:** `customer_email`:\n**Validation Rules:** `start_at`:\n**Validation Rules:** `end_at`:\n**Validation Rules:** `total_hours`:\n**Validation Rules:** `headcount`:\n**Validation Rules:** `purpose`:\n**Validation Rules:** `scene_ids`:\n**Validation Rules:** `pricing_plan_id`:\n**Validation Rules:** `subtotal`:\n**Validation Rules:** `discount_amount`:\n**Validation Rules:** `discount_code`:\n**Validation Rules:** `tax_amount`:\n**Validation Rules:** `total_price`:\n**Validation Rules:** `deposit_amount`:\n**Validation Rules:** `status`:\n**Validation Rules:** `payment_status`:\n**Validation Rules:** `customer_note`:\n**Validation Rules:** `admin_note`:\n**Validation Rules:** `confirmed_at`:\n**Validation Rules:** `checked_in_at`:\n**Validation Rules:** `completed_at`:\n**Validation Rules:** `cancelled_at`:\n**Validation Rules:** `cancellation_reason`:\n**Validation Rules:** `cancelled_by_admin_id`:\n**Validation Rules:** `source`:\n**Validation Rules:** `referral_code`:\n**Validation Rules:** `created_by_admin_id`:\n**Validation Rules:** `metadata`:\n**Validation Rules:** `created_at`:\n**Validation Rules:** `updated_at`:",
+                "description": "**Validation Rules:**\n**Validation Rules:** `booking_number`:\n**Validation Rules:** `studio_id`:\n**Validation Rules:** `customer_account_id`:\n**Validation Rules:** `customer_name`:\n**Validation Rules:** `customer_phone`:\n**Validation Rules:** `customer_email`:\n**Validation Rules:** `start_at`:\n**Validation Rules:** `end_at`:\n**Validation Rules:** `total_hours`:\n**Validation Rules:** `headcount`:\n**Validation Rules:** `purpose`:\n**Validation Rules:** `scene_ids`:\n**Validation Rules:** `pricing_plan_id`:\n**Validation Rules:** `subtotal`:\n**Validation Rules:** `discount_amount`:\n**Validation Rules:** `discount_code`:\n**Validation Rules:** `tax_amount`:\n**Validation Rules:** `total_price`:\n**Validation Rules:** `deposit_amount`:\n**Validation Rules:** `status`:\n**Validation Rules:** `payment_status`:\n**Validation Rules:** `customer_note`:\n**Validation Rules:** `admin_note`:\n**Validation Rules:** `confirmed_at`:\n**Validation Rules:** `checked_in_at`:\n**Validation Rules:** `completed_at`:\n**Validation Rules:** `cancelled_at`:\n**Validation Rules:** `cancellation_reason`:\n**Validation Rules:** `cancelled_by_admin_id`:\n**Validation Rules:** `source`:\n**Validation Rules:** `referral_code`:\n**Validation Rules:** `created_by_admin_id`:\n**Validation Rules:** `metadata`:\n**Validation Rules:** `created_at`:\n**Validation Rules:** `updated_at`:\n**Validation Rules:** `subtotal_price`:",
                 "consumes": [
                     "application/json"
                 ],
@@ -2025,7 +2091,7 @@
         },
         "/public/bookings/batch": {
             "put": {
-                "description": "Replaces multiple bookings resources with new data.\n\n**Required Fields (for each item in the array):**\n* `id` (The ID of the item to update)\n* `id`  option\n* `booking_number`  require\n* `studio_id`  require\n* `customer_account_id`  require\n* `customer_name`  require\n* `customer_phone`  require\n* `customer_email`  require\n* `start_at`  require\n* `end_at`  require\n* `total_hours`  require\n* `headcount`  require\n* `purpose`  require\n* `scene_ids`  require\n* `pricing_plan_id`  require\n* `subtotal`  require\n* `discount_amount`  require\n* `discount_code`  require\n* `tax_amount`  require\n* `total_price`  require\n* `deposit_amount`  require\n* `status`  require\n* `payment_status`  require\n* `customer_note`  require\n* `admin_note`  require\n* `confirmed_at`  require\n* `checked_in_at`  require\n* `completed_at`  require\n* `cancelled_at`  require\n* `cancellation_reason`  require\n* `cancelled_by_admin_id`  require\n* `source`  require\n* `referral_code`  require\n* `created_by_admin_id`  require\n* `metadata`  require\n* `created_at`  require\n* `updated_at`  require",
+                "description": "Replaces multiple bookings resources with new data.\n\n**Required Fields (for each item in the array):**\n* `id` (The ID of the item to update)\n* `id`  option\n* `booking_number`  require\n* `studio_id`  require\n* `customer_account_id`  require\n* `customer_name`  require\n* `customer_phone`  require\n* `customer_email`  require\n* `start_at`  require\n* `end_at`  require\n* `total_hours`  require\n* `headcount`  require\n* `purpose`  require\n* `scene_ids`  require\n* `pricing_plan_id`  require\n* `subtotal`  require\n* `discount_amount`  require\n* `discount_code`  require\n* `tax_amount`  require\n* `total_price`  require\n* `deposit_amount`  require\n* `status`  require\n* `payment_status`  require\n* `customer_note`  require\n* `admin_note`  require\n* `confirmed_at`  require\n* `checked_in_at`  require\n* `completed_at`  require\n* `cancelled_at`  require\n* `cancellation_reason`  require\n* `cancelled_by_admin_id`  require\n* `source`  require\n* `referral_code`  require\n* `created_by_admin_id`  require\n* `metadata`  require\n* `created_at`  require\n* `updated_at`  require\n* `subtotal_price`  require",
                 "consumes": [
                     "application/json"
                 ],
@@ -2274,7 +2340,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios, customer_accounts, pricing_plans, studio_admin_accounts, studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios, customer_accounts, pricing_plans, studio_admin_accounts, studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -2333,7 +2399,7 @@
                 "x-gocode-info-service": "BookingsService"
             },
             "put": {
-                "description": "Replaces an entire bookings resource with new data.\n\n**Required Fields:**\n* `id`  option\n* `booking_number`  require\n* `studio_id`  require\n* `customer_account_id`  option\n* `customer_name`  require\n* `customer_phone`  require\n* `customer_email`  require\n* `start_at`  require\n* `end_at`  require\n* `total_hours`  require\n* `headcount`  option\n* `purpose`  option\n* `scene_ids`  require\n* `pricing_plan_id`  option\n* `subtotal`  require\n* `discount_amount`  require\n* `discount_code`  option\n* `tax_amount`  require\n* `total_price`  require\n* `deposit_amount`  require\n* `status`  require\n* `payment_status`  require\n* `customer_note`  option\n* `admin_note`  option\n* `confirmed_at`  option\n* `checked_in_at`  option\n* `completed_at`  option\n* `cancelled_at`  option\n* `cancellation_reason`  option\n* `cancelled_by_admin_id`  option\n* `source`  require\n* `referral_code`  option\n* `created_by_admin_id`  option\n* `metadata`  require\n* `created_at`  require\n* `updated_at`  require",
+                "description": "Replaces an entire bookings resource with new data.\n\n**Required Fields:**\n* `id`  option\n* `booking_number`  require\n* `studio_id`  require\n* `customer_account_id`  option\n* `customer_name`  require\n* `customer_phone`  require\n* `customer_email`  require\n* `start_at`  require\n* `end_at`  require\n* `total_hours`  require\n* `headcount`  option\n* `purpose`  option\n* `scene_ids`  require\n* `pricing_plan_id`  option\n* `subtotal`  require\n* `discount_amount`  require\n* `discount_code`  option\n* `tax_amount`  require\n* `total_price`  require\n* `deposit_amount`  require\n* `status`  require\n* `payment_status`  require\n* `customer_note`  option\n* `admin_note`  option\n* `confirmed_at`  option\n* `checked_in_at`  option\n* `completed_at`  option\n* `cancelled_at`  option\n* `cancellation_reason`  option\n* `cancelled_by_admin_id`  option\n* `source`  require\n* `referral_code`  option\n* `created_by_admin_id`  option\n* `metadata`  require\n* `created_at`  require\n* `updated_at`  require\n* `subtotal_price`  option",
                 "consumes": [
                     "application/json"
                 ],
@@ -2615,7 +2681,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios",
                         "name": "expand",
                         "in": "query"
                     }
@@ -2671,7 +2737,7 @@
                 "x-gocode-info-service": "BusinessHoursService"
             },
             "post": {
-                "description": "**Validation Rules:**\n**Validation Rules:** `studio_id`:\n**Validation Rules:** `weekday`:\n**Validation Rules:** `start_minute`:\n**Validation Rules:** `end_minute`:\n**Validation Rules:** `is_closed`:\n**Validation Rules:** `note`:\n**Validation Rules:** `metadata`:\n**Validation Rules:** `created_at`:\n**Validation Rules:** `updated_at`:",
+                "description": "**Validation Rules:**\n**Validation Rules:** `studio_id`:\n**Validation Rules:** `weekday`:  numeric,gte=0,lte=6\n**Validation Rules:** `start_minute`:  numeric,gte=0,lte=1439\n**Validation Rules:** `end_minute`:  numeric,gte=0,lte=1440\n**Validation Rules:** `is_closed`:\n**Validation Rules:** `note`:\n**Validation Rules:** `metadata`:\n**Validation Rules:** `created_at`:\n**Validation Rules:** `updated_at`:",
                 "consumes": [
                     "application/json"
                 ],
@@ -2999,7 +3065,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios",
                         "name": "expand",
                         "in": "query"
                     }
@@ -3058,7 +3124,7 @@
                 "x-gocode-info-service": "BusinessHoursService"
             },
             "put": {
-                "description": "Replaces an entire business_hours resource with new data.\n\n**Required Fields:**\n* `id`  option\n* `studio_id`  require\n* `weekday`  require\n* `start_minute`  require\n* `end_minute`  require\n* `is_closed`  require\n* `note`  option\n* `metadata`  require\n* `created_at`  require\n* `updated_at`  require",
+                "description": "Replaces an entire business_hours resource with new data.\n\n**Required Fields:**\n* `id`  option\n* `studio_id`  require\n* `weekday`  option\n* `start_minute`  option\n* `end_minute`  option\n* `is_closed`  require\n* `note`  option\n* `metadata`  require\n* `created_at`  require\n* `updated_at`  require",
                 "consumes": [
                     "application/json"
                 ],
@@ -4000,6 +4066,799 @@
                 "x-gocode-info-service": "CustomerAccountsService"
             }
         },
+        "/public/discount_codes": {
+            "get": {
+                "description": "Retrieves a list of discount_codes resources.\n\n**進階過濾 (Advanced Filtering):**\n此端點支援 `filter=[欄位],[運算子],[值]` 的格式進行過濾。\n* **AND 結合**: 若需多個條件同時成立，可重複使用 `filter` 參數 (例如 `?filter=A,eq,v1\u0026filter=B,eq,v2`)。\n* **OR 結合**: 在同一個 `filter` 參數內使用 `|` 分隔多個條件 (例如 `?filter=A,eq,v1|B,eq,v2`)。// @Description\n* **可用的 `filter` 欄位**: `id, code, name, discount_type, discount_amount, is_active, metadata`\n\n**聚合查詢 (Meta Aggregation):**\n使用 `meta=[函式]([欄位])` 來獲取關於整個結果集的統計數據。可用的函式有 `count`, `sum`, `avg`, `max`, `min`。\n* **可用的 `meta` 欄位**: (通常為數字類型欄位)\n\n**分組查詢 (Grouping):**\n使用 `groupBy=[欄位],[欄位]` 來對結果進行分組。分組查詢的回應結構將只包含分組欄位和 `meta` 中要求的聚合欄位。\n\n**可用運算子:**\n* `eq`: 等於 (Equal)\n* `neq`: 不等於 (Not Equal)\n* `gt`: 大於 (Greater Than)\n* `gte`: 大於或等於 (Greater Than or Equal To)\n* `lt`: 小於 (Less Than)\n* `lte`: 小於或等於 (Less Than or Equal To)\n* `like`: 模糊查詢 (Substring search)\n* `in`: 包含於 (值為逗號分隔的列表, e.g., `1,2,3`)\n\n**預設過濾條件 (Default Filters):**\n\n**查詢範例:**\n`?filter=code,like,value\u0026filter=discount_amount,gte,10`",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discount_codes"
+                ],
+                "summary": "List discount_codes",
+                "operationId": "get_public_discount_codes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page",
+                        "name": "pageSize",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "欄位: `id, code, name, discount_type, discount_amount, is_active, metadata`",
+                        "name": "filter",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (e.g., metadata_asc). 可用的 `sort` 欄位: `id, code, name, discount_type, discount_amount, is_active, metadata`",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Aggregation queries (e.g., count(id),sum(price))",
+                        "name": "meta",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fields to group by (e.g., status,user_id)",
+                        "name": "groupBy",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.PaginatedResponseWithMeta"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/response.DiscountCodesResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "ListDiscountCodess",
+                "x-gocode-info-service": "DiscountCodesService"
+            },
+            "post": {
+                "description": "**Validation Rules:**\n**Validation Rules:** `code`:\n**Validation Rules:** `name`:\n**Validation Rules:** `discount_type`:\n**Validation Rules:** `discount_amount`:\n**Validation Rules:** `is_active`:\n**Validation Rules:** `metadata`:",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discount_codes"
+                ],
+                "summary": "Create a new discount_codes",
+                "operationId": "post_public_discount_codes",
+                "parameters": [
+                    {
+                        "description": "Request body for creating a new discount_codes",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.CreateDiscountCodesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StdResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.DiscountCodesResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "CreateDiscountCodes",
+                "x-gocode-info-service": "DiscountCodesService"
+            }
+        },
+        "/public/discount_codes/batch": {
+            "put": {
+                "description": "Replaces multiple discount_codes resources with new data.\n\n**Required Fields (for each item in the array):**\n* `id` (The ID of the item to update)\n* `id`  option\n* `code`  require\n* `name`  require\n* `discount_type`  require\n* `discount_amount`  require\n* `is_active`  require\n* `metadata`  require",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discount_codes"
+                ],
+                "summary": "Batch update existing discount_codes (PUT)",
+                "operationId": "put_public_discount_codes_batch",
+                "parameters": [
+                    {
+                        "description": "Request body for batch updating discount_codes",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.BatchUpdateDiscountCodesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "In async mode",
+                        "schema": {
+                            "$ref": "#/definitions/response.StdResponse"
+                        }
+                    },
+                    "204": {
+                        "description": "In sync mode"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "BatchUpdateDiscountCodess",
+                "x-gocode-info-service": "DiscountCodesService"
+            },
+            "post": {
+                "description": "Adds multiple new discount_codes resources to the database.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discount_codes"
+                ],
+                "summary": "Batch create new discount_codes",
+                "operationId": "post_public_discount_codes_batch",
+                "parameters": [
+                    {
+                        "description": "Request body for batch creating discount_codes",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/request.CreateDiscountCodesRequest"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "In sync mode",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StdResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/response.DiscountCodesResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "202": {
+                        "description": "In async mode",
+                        "schema": {
+                            "$ref": "#/definitions/response.StdResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "BatchCreateDiscountCodess",
+                "x-gocode-info-service": "DiscountCodesService"
+            },
+            "delete": {
+                "description": "Removes multiple discount_codes resources from the database.\nThe `ids` field is a required array of IDs to be deleted.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discount_codes"
+                ],
+                "summary": "Batch delete discount_codes",
+                "operationId": "delete_public_discount_codes_batch",
+                "parameters": [
+                    {
+                        "description": "Request body for batch deleting discount_codes",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.BatchDeleteDiscountCodesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "BatchDeleteDiscountCodess",
+                "x-gocode-info-service": "DiscountCodesService"
+            }
+        },
+        "/public/discount_codes/by_code/{code}": {
+            "get": {
+                "description": "Retrieves a single discount_codes resource based on its unique code.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discount_codes"
+                ],
+                "summary": "Get a discount_codes by code",
+                "operationId": "get_public_discount_codes_by_code_code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StdResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/response.DiscountCodesResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "GetByCode",
+                "x-gocode-info-service": "DiscountCodesService"
+            }
+        },
+        "/public/discount_codes/{id}": {
+            "get": {
+                "description": "Retrieves a single discount_codes resource based on its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discount_codes"
+                ],
+                "summary": "Get a discount_codes by ID",
+                "operationId": "get_public_discount_codes_id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StdResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.DiscountCodesResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "GetDiscountCodesByID",
+                "x-gocode-info-service": "DiscountCodesService"
+            },
+            "put": {
+                "description": "Replaces an entire discount_codes resource with new data.\n\n**Required Fields:**\n* `id`  option\n* `code`  require\n* `name`  option\n* `discount_type`  require\n* `discount_amount`  require\n* `is_active`  require\n* `metadata`  require",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discount_codes"
+                ],
+                "summary": "Update an existing discount_codes (PUT)",
+                "operationId": "put_public_discount_codes_id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request body for updating a discount_codes",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.UpdateDiscountCodesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StdResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.DiscountCodesResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "UpdateDiscountCodes",
+                "x-gocode-info-service": "DiscountCodesService"
+            },
+            "delete": {
+                "description": "Removes a discount_codes resource from the database.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discount_codes"
+                ],
+                "summary": "Delete a discount_codes",
+                "operationId": "delete_public_discount_codes_id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "DeleteDiscountCodes",
+                "x-gocode-info-service": "DiscountCodesService"
+            },
+            "patch": {
+                "description": "Updates specific fields of a discount_codes resource.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discount_codes"
+                ],
+                "summary": "Partially update an existing discount_codes (PATCH)",
+                "operationId": "patch_public_discount_codes_id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to patch",
+                        "name": "fields",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.StdResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.DiscountCodesResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrResponse"
+                        }
+                    }
+                },
+                "x-gocode-info-method": "PatchDiscountCodes",
+                "x-gocode-info-service": "DiscountCodesService"
+            }
+        },
         "/public/door_lock_codes": {
             "get": {
                 "description": "Retrieves a list of door_lock_codes resources.\n\n**進階過濾 (Advanced Filtering):**\n此端點支援 `filter=[欄位],[運算子],[值]` 的格式進行過濾。\n* **AND 結合**: 若需多個條件同時成立，可重複使用 `filter` 參數 (例如 `?filter=A,eq,v1\u0026filter=B,eq,v2`)。\n* **OR 結合**: 在同一個 `filter` 參數內使用 `|` 分隔多個條件 (例如 `?filter=A,eq,v1|B,eq,v2`)。// @Description\n* **可用的 `filter` 欄位**: `id, booking_id, studio_id, lock_code, lock_code_hash, valid_from, valid_until, send_status, scheduled_send_at, sent_at, delivery_channel, email_log_id, send_attempts, last_error, used_at, used_count, lock_device_id, lock_provider, provider_reference, provider_raw, manually_sent_by_admin_id, metadata, created_at, updated_at`\n\n**聚合查詢 (Meta Aggregation):**\n使用 `meta=[函式]([欄位])` 來獲取關於整個結果集的統計數據。可用的函式有 `count`, `sum`, `avg`, `max`, `min`。\n* **可用的 `meta` 欄位**: (通常為數字類型欄位)\n\n**分組查詢 (Grouping):**\n使用 `groupBy=[欄位],[欄位]` 來對結果進行分組。分組查詢的回應結構將只包含分組欄位和 `meta` 中要求的聚合欄位。\n\n**可用運算子:**\n* `eq`: 等於 (Equal)\n* `neq`: 不等於 (Not Equal)\n* `gt`: 大於 (Greater Than)\n* `gte`: 大於或等於 (Greater Than or Equal To)\n* `lt`: 小於 (Less Than)\n* `lte`: 小於或等於 (Less Than or Equal To)\n* `like`: 模糊查詢 (Substring search)\n* `in`: 包含於 (值為逗號分隔的列表, e.g., `1,2,3`)\n\n**預設過濾條件 (Default Filters):**\n\n**查詢範例:**\n`?filter=lock_code,like,value\u0026filter=booking_id,gte,10`",
@@ -4053,7 +4912,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., bookings, studios, email_logs, studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: bookings, studios, email_logs, studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -4437,7 +5296,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., bookings, studios, email_logs, studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: bookings, studios, email_logs, studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -4778,7 +5637,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., email_templates, bookings, customer_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: email_templates, bookings, customer_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -5162,7 +6021,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., email_templates, bookings, customer_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: email_templates, bookings, customer_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -5503,7 +6362,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -5887,7 +6746,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -6228,7 +7087,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., payments, studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: payments, studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -6612,7 +7471,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., payments, studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: payments, studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -6953,7 +7812,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., bookings, bank_accounts, studio_admin_accounts, studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: bookings, bank_accounts, studio_admin_accounts, studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -7337,7 +8196,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., bookings, bank_accounts, studio_admin_accounts, studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: bookings, bank_accounts, studio_admin_accounts, studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -7678,7 +8537,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios",
                         "name": "expand",
                         "in": "query"
                     }
@@ -8062,7 +8921,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios",
                         "name": "expand",
                         "in": "query"
                     }
@@ -8403,7 +9262,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., scenes)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: scenes",
                         "name": "expand",
                         "in": "query"
                     }
@@ -8787,7 +9646,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., scenes)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: scenes",
                         "name": "expand",
                         "in": "query"
                     }
@@ -9128,7 +9987,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios",
                         "name": "expand",
                         "in": "query"
                     }
@@ -9512,7 +10371,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios",
                         "name": "expand",
                         "in": "query"
                     }
@@ -9853,7 +10712,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios, bookings, studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios, bookings, studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -10237,7 +11096,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios, bookings, studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios, bookings, studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -11291,7 +12150,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios",
                         "name": "expand",
                         "in": "query"
                     }
@@ -11675,7 +12534,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios",
                         "name": "expand",
                         "in": "query"
                     }
@@ -12729,7 +13588,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -13113,7 +13972,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studio_admin_accounts)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studio_admin_accounts",
                         "name": "expand",
                         "in": "query"
                     }
@@ -13454,7 +14313,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios, bookings)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios, bookings",
                         "name": "expand",
                         "in": "query"
                     }
@@ -13838,7 +14697,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., studios, bookings)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: studios, bookings",
                         "name": "expand",
                         "in": "query"
                     }
@@ -13897,7 +14756,7 @@
                 "x-gocode-info-service": "TimeSlotsService"
             },
             "put": {
-                "description": "Replaces an entire time_slots resource with new data.\n\n**Required Fields:**\n* `id`  option\n* `studio_id`  require\n* `slot_date`  require\n* `start_minute`  require\n* `end_minute`  require\n* `status`  require\n* `booking_id`  option\n* `hourly_price`  option\n* `hold_expires_at`  option\n* `block_reason`  option\n* `metadata`  require\n* `created_at`  require\n* `updated_at`  require",
+                "description": "Replaces an entire time_slots resource with new data.\n\n**Required Fields:**\n* `id`  option\n* `studio_id`  require\n* `slot_date`  require\n* `start_minute`  option\n* `end_minute`  option\n* `status`  require\n* `booking_id`  option\n* `hourly_price`  option\n* `hold_expires_at`  option\n* `block_reason`  option\n* `metadata`  require\n* `created_at`  require\n* `updated_at`  require",
                 "consumes": [
                     "application/json"
                 ],
@@ -15107,7 +15966,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., users, roles)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: users, roles",
                         "name": "expand",
                         "in": "query"
                     }
@@ -15516,7 +16375,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Relations to expand (e.g., users, roles)",
+                        "description": "Relations to expand. Supports nested paths (e.g., posts.users), reverse Has-Many expand (e.g., posts), and parenthesized field projection (e.g., users(id,account)) to only return specified columns. Available relations: users, roles",
                         "name": "expand",
                         "in": "query"
                     }
@@ -16809,6 +17668,20 @@
                 }
             }
         },
+        "request.BatchDeleteDiscountCodesRequest": {
+            "type": "object",
+            "required": [
+                "ids"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "request.BatchDeleteDoorLockCodesRequest": {
             "type": "object",
             "required": [
@@ -17363,6 +18236,10 @@
                     "type": "number",
                     "example": 123.45
                 },
+                "subtotal_price": {
+                    "type": "integer",
+                    "example": 0
+                },
                 "tax_amount": {
                     "type": "number",
                     "example": 123.45
@@ -17408,6 +18285,7 @@
                     "example": "2025-09-22T15:20:01Z"
                 },
                 "end_minute": {
+                    "description": "@validate=\"numeric,gte=0,lte=1440\"",
                     "type": "integer",
                     "example": 0
                 },
@@ -17427,6 +18305,7 @@
                     "example": "string"
                 },
                 "start_minute": {
+                    "description": "@validate=\"numeric,gte=0,lte=1439\"",
                     "type": "integer",
                     "example": 0
                 },
@@ -17440,6 +18319,7 @@
                     "example": "2025-09-22T15:20:01Z"
                 },
                 "weekday": {
+                    "description": "@validate=\"numeric,gte=0,lte=6\"",
                     "type": "integer",
                     "example": 0
                 }
@@ -17542,6 +18422,55 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/request.BatchUpdateCustomerAccountsItem"
+                    }
+                }
+            }
+        },
+        "request.BatchUpdateDiscountCodesItem": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "string"
+                },
+                "discount_amount": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "example": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "metadata": {
+                    "type": "object"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "string"
+                }
+            }
+        },
+        "request.BatchUpdateDiscountCodesRequest": {
+            "type": "object",
+            "required": [
+                "items"
+            ],
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/request.BatchUpdateDiscountCodesItem"
                     }
                 }
             }
@@ -19107,10 +20036,7 @@
         "request.CreateBankAccountsRequest": {
             "type": "object",
             "required": [
-                "account_holder",
                 "account_name",
-                "account_number",
-                "bank_code",
                 "bank_name"
             ],
             "properties": {
@@ -19334,6 +20260,10 @@
                     "type": "number",
                     "example": 123.45
                 },
+                "subtotal_price": {
+                    "type": "integer",
+                    "example": 0
+                },
                 "tax_amount": {
                     "type": "number",
                     "example": 123.45
@@ -19356,10 +20286,7 @@
         "request.CreateBusinessHoursRequest": {
             "type": "object",
             "required": [
-                "end_minute",
-                "start_minute",
-                "studio_id",
-                "weekday"
+                "studio_id"
             ],
             "properties": {
                 "created_at": {
@@ -19368,7 +20295,10 @@
                     "example": "2025-09-22T15:20:01Z"
                 },
                 "end_minute": {
+                    "description": "@validate=\"numeric,gte=0,lte=1440\"",
                     "type": "integer",
+                    "maximum": 1440,
+                    "minimum": 0,
                     "example": 0
                 },
                 "is_closed": {
@@ -19383,7 +20313,10 @@
                     "example": "string"
                 },
                 "start_minute": {
+                    "description": "@validate=\"numeric,gte=0,lte=1439\"",
                     "type": "integer",
+                    "maximum": 1439,
+                    "minimum": 0,
                     "example": 0
                 },
                 "studio_id": {
@@ -19396,7 +20329,10 @@
                     "example": "2025-09-22T15:20:01Z"
                 },
                 "weekday": {
+                    "description": "@validate=\"numeric,gte=0,lte=6\"",
                     "type": "integer",
+                    "maximum": 6,
+                    "minimum": 0,
                     "example": 0
                 }
             }
@@ -19467,6 +20403,40 @@
                     "type": "string",
                     "format": "date-time",
                     "example": "2025-09-22T15:20:01Z"
+                }
+            }
+        },
+        "request.CreateDiscountCodesRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "discount_amount",
+                "discount_type",
+                "metadata"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "string"
+                },
+                "discount_amount": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "example": "string"
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "metadata": {
+                    "type": "object"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "string"
                 }
             }
         },
@@ -20549,9 +21519,7 @@
         "request.CreateTimeSlotsRequest": {
             "type": "object",
             "required": [
-                "end_minute",
                 "slot_date",
-                "start_minute",
                 "studio_id"
             ],
             "properties": {
@@ -20666,6 +21634,21 @@
                 "account": {
                     "type": "string",
                     "example": "user@example.com"
+                }
+            }
+        },
+        "request.GithubRequest": {
+            "type": "object",
+            "required": [
+                "action"
+            ],
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "payload": {
+                    "type": "object",
+                    "additionalProperties": true
                 }
             }
         },
@@ -20993,6 +21976,10 @@
                     "type": "number",
                     "example": 123.45
                 },
+                "subtotal_price": {
+                    "type": "integer",
+                    "example": 0
+                },
                 "tax_amount": {
                     "type": "number",
                     "example": 123.45
@@ -21021,6 +22008,7 @@
                     "example": "2025-09-22T15:20:01Z"
                 },
                 "end_minute": {
+                    "description": "@validate=\"numeric,gte=0,lte=1440\"",
                     "type": "integer",
                     "example": 0
                 },
@@ -21036,6 +22024,7 @@
                     "example": "string"
                 },
                 "start_minute": {
+                    "description": "@validate=\"numeric,gte=0,lte=1439\"",
                     "type": "integer",
                     "example": 0
                 },
@@ -21049,6 +22038,7 @@
                     "example": "2025-09-22T15:20:01Z"
                 },
                 "weekday": {
+                    "description": "@validate=\"numeric,gte=0,lte=6\"",
                     "type": "integer",
                     "example": 0
                 }
@@ -21117,6 +22107,34 @@
                     "type": "string",
                     "format": "date-time",
                     "example": "2025-09-22T15:20:01Z"
+                }
+            }
+        },
+        "request.UpdateDiscountCodesRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "string"
+                },
+                "discount_amount": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "example": "string"
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "metadata": {
+                    "type": "object"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "string"
                 }
             }
         },
@@ -22368,6 +23386,12 @@
                     "type": "string",
                     "example": "string"
                 },
+                "payments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.PaymentsResponse"
+                    }
+                },
                 "studio_id": {
                     "type": "integer",
                     "example": 0
@@ -22495,6 +23519,18 @@
                     "type": "string",
                     "example": "string"
                 },
+                "door_lock_codes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.DoorLockCodesResponse"
+                    }
+                },
+                "email_logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.EmailLogsResponse"
+                    }
+                },
                 "end_at": {
                     "type": "string",
                     "format": "date-time",
@@ -22517,6 +23553,12 @@
                 "payment_status": {
                     "type": "string",
                     "example": "string"
+                },
+                "payments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.PaymentsResponse"
+                    }
                 },
                 "pricing_plan_id": {
                     "type": "integer",
@@ -22548,6 +23590,12 @@
                     "type": "string",
                     "example": "string"
                 },
+                "special_dates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.SpecialDatesResponse"
+                    }
+                },
                 "start_at": {
                     "type": "string",
                     "format": "date-time",
@@ -22573,9 +23621,19 @@
                     "type": "number",
                     "example": 123.45
                 },
+                "subtotal_price": {
+                    "type": "integer",
+                    "example": 0
+                },
                 "tax_amount": {
                     "type": "number",
                     "example": 123.45
+                },
+                "time_slots": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.TimeSlotsResponse"
+                    }
                 },
                 "total_hours": {
                     "type": "number",
@@ -22601,6 +23659,7 @@
                     "example": "2025-09-17T16:30:00Z"
                 },
                 "end_minute": {
+                    "description": "@validate=\"numeric,gte=0,lte=1440\"",
                     "type": "integer",
                     "example": 0
                 },
@@ -22623,6 +23682,7 @@
                     "example": "string"
                 },
                 "start_minute": {
+                    "description": "@validate=\"numeric,gte=0,lte=1439\"",
                     "type": "integer",
                     "example": 0
                 },
@@ -22644,6 +23704,7 @@
                     "example": "2025-09-17T16:30:00Z"
                 },
                 "weekday": {
+                    "description": "@validate=\"numeric,gte=0,lte=6\"",
                     "type": "integer",
                     "example": 0
                 }
@@ -22652,6 +23713,12 @@
         "response.CustomerAccountsResponse": {
             "type": "object",
             "properties": {
+                "bookings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.BookingsResponse"
+                    }
+                },
                 "created_at": {
                     "type": "string",
                     "format": "date-time",
@@ -22669,6 +23736,12 @@
                 "email": {
                     "type": "string",
                     "example": "string"
+                },
+                "email_logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.EmailLogsResponse"
+                    }
                 },
                 "email_verified_at": {
                     "type": "string",
@@ -22719,6 +23792,41 @@
                     "type": "string",
                     "format": "date-time",
                     "example": "2025-09-17T16:30:00Z"
+                }
+            }
+        },
+        "response.DiscountCodesResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "string"
+                },
+                "discount_amount": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "discount_type": {
+                    "type": "string",
+                    "example": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "metadata": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "example": "string"
                 }
             }
         },
@@ -22933,6 +24041,12 @@
                     "format": "date-time",
                     "example": "2025-09-17T16:30:00Z"
                 },
+                "door_lock_codes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.DoorLockCodesResponse"
+                    }
+                },
                 "email_template_id": {
                     "type": "integer",
                     "example": 0
@@ -23072,6 +24186,12 @@
                 "description": {
                     "type": "string",
                     "example": "string"
+                },
+                "email_logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.EmailLogsResponse"
+                    }
                 },
                 "email_type": {
                     "type": "string",
@@ -23374,6 +24494,12 @@
                     "type": "string",
                     "example": "string"
                 },
+                "payment_logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.PaymentLogsResponse"
+                    }
+                },
                 "payment_method": {
                     "type": "string",
                     "example": "string"
@@ -23451,6 +24577,12 @@
                     "type": "array",
                     "items": {
                         "type": "integer"
+                    }
+                },
+                "bookings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.BookingsResponse"
                     }
                 },
                 "created_at": {
@@ -23584,6 +24716,12 @@
                     "type": "string",
                     "format": "date-time",
                     "example": "2025-09-17T16:30:00Z"
+                },
+                "user_roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.UserRolesResponse"
+                    }
                 }
             }
         },
@@ -23694,6 +24832,12 @@
                 "name": {
                     "type": "string",
                     "example": "string"
+                },
+                "scene_images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.SceneImagesResponse"
+                    }
                 },
                 "slug": {
                     "type": "string",
@@ -23833,6 +24977,24 @@
         "response.StudioAdminAccountsResponse": {
             "type": "object",
             "properties": {
+                "admin_activity_logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.AdminActivityLogsResponse"
+                    }
+                },
+                "bookings_by_cancelled_by_admin_id": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.BookingsResponse"
+                    }
+                },
+                "bookings_by_created_by_admin_id": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.BookingsResponse"
+                    }
+                },
                 "created_at": {
                     "type": "string",
                     "format": "date-time",
@@ -23847,9 +25009,21 @@
                     "type": "string",
                     "example": "string"
                 },
+                "door_lock_codes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.DoorLockCodesResponse"
+                    }
+                },
                 "email": {
                     "type": "string",
                     "example": "string"
+                },
+                "email_templates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.EmailTemplatesResponse"
+                    }
                 },
                 "id": {
                     "type": "integer",
@@ -23874,9 +25048,39 @@
                     "type": "string",
                     "example": "string"
                 },
+                "payment_logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.PaymentLogsResponse"
+                    }
+                },
+                "payments_by_refunded_by_admin_id": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.PaymentsResponse"
+                    }
+                },
+                "payments_by_verified_by_admin_id": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.PaymentsResponse"
+                    }
+                },
                 "role": {
                     "type": "string",
                     "example": "string"
+                },
+                "special_dates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.SpecialDatesResponse"
+                    }
+                },
+                "system_settings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.SystemSettingsResponse"
+                    }
                 },
                 "updated_at": {
                     "type": "string",
@@ -23969,9 +25173,27 @@
                     "type": "number",
                     "example": 123.45
                 },
+                "bank_accounts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.BankAccountsResponse"
+                    }
+                },
                 "booking_increment_minutes": {
                     "type": "integer",
                     "example": 0
+                },
+                "bookings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.BookingsResponse"
+                    }
+                },
+                "business_hours": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.BusinessHoursResponse"
+                    }
                 },
                 "cancellation_hours": {
                     "type": "integer",
@@ -24002,6 +25224,12 @@
                 "display_order": {
                     "type": "integer",
                     "example": 0
+                },
+                "door_lock_codes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.DoorLockCodesResponse"
+                    }
                 },
                 "features": {
                     "type": "array",
@@ -24039,9 +25267,39 @@
                     "type": "string",
                     "example": "string"
                 },
+                "pricing_plans": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.PricingPlansResponse"
+                    }
+                },
+                "scenes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.ScenesResponse"
+                    }
+                },
                 "slug": {
                     "type": "string",
                     "example": "string"
+                },
+                "special_dates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.SpecialDatesResponse"
+                    }
+                },
+                "studio_images": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.StudioImagesResponse"
+                    }
+                },
+                "time_slots": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.TimeSlotsResponse"
+                    }
                 },
                 "updated_at": {
                     "type": "string",
@@ -24282,6 +25540,12 @@
                     "type": "string",
                     "format": "date-time",
                     "example": "2025-09-17T16:30:00Z"
+                },
+                "user_roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.UserRolesResponse"
+                    }
                 }
             }
         }

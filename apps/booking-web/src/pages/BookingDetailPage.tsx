@@ -19,11 +19,13 @@ import { BookingSummary } from '../components/Booking/BookingSummary'
 import { BankTransferInfo } from '../components/Booking/BankTransferInfo'
 import { BookingStatusBadge } from '../components/Booking/BookingStatusBadge'
 import { PaymentStatusBadge } from '../components/Booking/PaymentStatusBadge'
+import { useAuth } from '../auth/AuthContext'
 
 export function BookingDetailPage() {
   const { bookingId } = useParams<{ bookingId: string }>()
   const nav = useNavigate()
   const bookingIdNum = bookingId ? Number(bookingId) : undefined
+  const { user } = useAuth()
 
   const { data: booking, isLoading } = useBooking(bookingIdNum)
   const { data: studio } = useStudio(booking?.studioId)
@@ -34,6 +36,20 @@ export function BookingDetailPage() {
 
   if (isLoading) return <div className="py-16 text-center"><Spinner /></div>
   if (!booking || !studio) return <p className="py-16 text-center text-ink-2">找不到此預約。</p>
+  if (booking.customerEmail !== user?.email) {
+    return (
+      <div className="mx-auto max-w-md rounded-xl border border-line bg-surface p-8 text-center">
+        <p className="font-serif text-xl text-ink">無法查看此預約</p>
+        <p className="mt-2 text-sm text-ink-2">請確認你使用的是建立此預約的會員帳號。</p>
+        <Link
+          to="/my-bookings"
+          className="mt-6 inline-flex h-10 items-center rounded-lg bg-brand px-5 text-sm font-medium text-brand-on hover:bg-brand-hover"
+        >
+          回我的預約
+        </Link>
+      </div>
+    )
+  }
 
   const sceneNames =
     scenes?.items.filter((s) => booking.sceneIds.includes(s.id)).map((s) => s.name) ?? []

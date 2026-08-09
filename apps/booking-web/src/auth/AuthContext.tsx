@@ -7,7 +7,14 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { customerAuthApi, queryKeys, type CustomerAccount, type LoginInput, type RegisterInput } from '@studio/shared'
+import {
+  customerAuthApi,
+  queryKeys,
+  type CustomerAccount,
+  type LoginInput,
+  type RegisterInput,
+  type UpdateCustomerProfileInput,
+} from '@studio/shared'
 import { api } from '../lib'
 import { authStorage } from './storage'
 
@@ -16,6 +23,7 @@ interface AuthContextValue {
   isAuthenticated: boolean
   login: (input: LoginInput) => Promise<void>
   register: (input: RegisterInput) => Promise<void>
+  updateProfile: (input: UpdateCustomerProfileInput) => Promise<void>
   logout: () => void
 }
 
@@ -29,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = authStorage.getToken()
     if (token && !user) {
-      customerAuthApi.getCustomerMe(api).then(
+      customerAuthApi.getCurrentCustomerProfile(api).then(
         (u) => {
           authStorage.setUser(u)
           setUser(u)
@@ -43,18 +51,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (input: LoginInput) => {
     const session = await customerAuthApi.customerLogin(api, input)
     authStorage.setToken(session.token)
-    authStorage.setUser(session.customer)
-    setUser(session.customer)
-    qc.setQueryData(queryKeys.customerAuth.me, session.customer)
+    const currentUser = await customerAuthApi.getCurrentCustomerProfile(api).catch(() => session.customer)
+    authStorage.setUser(currentUser)
+    setUser(currentUser)
+    qc.setQueryData(queryKeys.customerAuth.me, currentUser)
   }, [qc])
 
   const register = useCallback(async (input: RegisterInput) => {
     const session = await customerAuthApi.customerRegister(api, input)
     authStorage.setToken(session.token)
-    authStorage.setUser(session.customer)
-    setUser(session.customer)
-    qc.setQueryData(queryKeys.customerAuth.me, session.customer)
+    const currentUser = await customerAuthApi.ensureCustomerProfile(api, input).catch(async () => (
+      customerAuthApi.getCurrentCustomerProfile(api).catch(() => session.customer)
+    ))
+    authStorage.setUser(currentUser)
+    setUser(currentUser)
+    qc.setQueryData(queryKeys.customerAuth.me, currentUser)
   }, [qc])
+
+  const updateProfile = useCallback(async (input: UpdateCustomerProfileInput) => {
+    if (!user) throw new Error('尚未登入')
+    const currentUser = await customerAuthApi.updateCustomerProfile(api, user, input)
+    authStorage.setUser(currentUser)
+    setUser(currentUser)
+    qc.setQueryData(queryKeys.customerAuth.me, currentUser)
+  }, [qc, user])
 
   const logout = useCallback(() => {
     customerAuthApi.customerLogout(api).catch(() => {})
@@ -64,8 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [qc])
 
   const value = useMemo<AuthContextValue>(() => ({
-    user, isAuthenticated: !!user, login, register, logout,
-  }), [user, login, register, logout])
+    user, isAuthenticated: !!user, login, register, updateProfile, logout,
+  }), [user, login, register, updateProfile, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

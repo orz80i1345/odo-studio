@@ -3,6 +3,7 @@ node_modules/
 .pnpm-store/
 jspm_packages/
 web_modules/
+project-overview/
 
 # Production build outputs (打包輸出檔案)
 dist/

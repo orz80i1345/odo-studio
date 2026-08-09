@@ -3,6 +3,7 @@
  * 預約單型別，狀態機對應 schema 的 CHECK 約束。
  */
 import type { ID, DateString, ISODateTime } from './common'
+import type { AppliedDiscount } from './discount'
 
 /** 預約主流程狀態 */
 export type BookingStatus =
@@ -67,6 +68,7 @@ export interface CreateBookingInput {
   headcount?: number
   purpose?: string
   customerNote?: string
+  discount?: AppliedDiscount
 }
 
 /** 「待付款」複合狀態的顯示判斷 */

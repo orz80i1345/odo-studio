@@ -9,6 +9,10 @@ export function useMyBookings() {
   return useQuery({
     queryKey: queryKeys.bookings.mine,
     queryFn: () => bookingsApi.listMyBookings(api, { customerEmail: user?.email }),
+    select: (page) => ({
+      ...page,
+      items: page.items.filter((booking) => booking.customerEmail === user?.email),
+    }),
     enabled: isAuthenticated,
   })
 }

@@ -322,7 +322,7 @@ export function toBooking(raw: RawBooking): Booking {
   }
 }
 
-export function toBookingCreate(input: CreateBookingInput, totals: { subtotal: number; totalPrice: number; depositAmount: number }): Omit<RawBooking, 'id'> {
+export function toBookingCreate(input: CreateBookingInput, totals: { subtotal: number; discountAmount?: number; totalPrice: number; depositAmount: number }): Omit<RawBooking, 'id'> {
   const start = new Date(input.startAt)
   const end = new Date(input.endAt)
   return {
@@ -338,7 +338,8 @@ export function toBookingCreate(input: CreateBookingInput, totals: { subtotal: n
     purpose: input.purpose,
     scene_ids: JSON.stringify(input.sceneIds ?? []),
     subtotal: totals.subtotal,
-    discount_amount: 0,
+    discount_amount: totals.discountAmount ?? 0,
+    discount_code: input.discount?.code,
     tax_amount: 0,
     total_price: totals.totalPrice,
     deposit_amount: totals.depositAmount,

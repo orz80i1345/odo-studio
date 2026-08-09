@@ -16,6 +16,7 @@ import {
   type ScaffoldItemResponse,
   type ScaffoldListResponse,
 } from './scaffold'
+import { validateHourlyDiscountCode } from './discountCodes'
 
 /** 建立預約（登入會員） */
 export async function createBooking(api: ApiClient, input: CreateBookingInput) {
@@ -24,7 +25,15 @@ export async function createBooking(api: ApiClient, input: CreateBookingInput) {
     throw new Error('此時段已被預約或暫時不可預約，請重新選擇時段。')
   }
   const totals = calculateBookingTotals(slots)
-  const res = await api.post<ScaffoldItemResponse<RawBooking>>('/public/bookings', toBookingCreate(input, totals))
+  const discount = input.discount?.code
+    ? await validateHourlyDiscountCode(api, {
+      code: input.discount.code,
+      subtotal: totals.subtotal,
+      totalHours: calculateTotalHours(input.startAt, input.endAt),
+    })
+    : undefined
+  const finalTotals = applyDiscountToTotals(totals, discount?.discountTotal ?? 0)
+  const res = await api.post<ScaffoldItemResponse<RawBooking>>('/public/bookings', toBookingCreate({ ...input, discount }, finalTotals))
   const booking = toBooking(unwrapItem(res))
   await syncBookingTimeSlots(api, booking, 'booked')
   return booking
@@ -88,11 +97,22 @@ function calculateBookingTotals(slots: ReturnType<typeof toTimeSlot>[]) {
     ? slots.reduce((sum, slot) => sum + Number(slot.hourlyPrice ?? 0), 0)
     : 0
   const totalPrice = Math.round(subtotal)
+  return applyDiscountToTotals({ subtotal: totalPrice }, 0)
+}
+
+function applyDiscountToTotals(totals: { subtotal: number }, discountTotal: number) {
+  const discountAmount = Math.min(Math.max(0, Math.round(discountTotal)), totals.subtotal)
+  const totalPrice = totals.subtotal - discountAmount
   return {
-    subtotal: totalPrice,
+    subtotal: totals.subtotal,
+    discountAmount,
     totalPrice,
     depositAmount: Math.round(totalPrice * 0.3),
   }
+}
+
+function calculateTotalHours(startAt: string, endAt: string) {
+  return Math.round(((+new Date(endAt) - +new Date(startAt)) / 3_600_000) * 100) / 100
 }
 
 async function syncBookingTimeSlots(api: ApiClient, booking: Booking, status: 'booked' | 'available') {

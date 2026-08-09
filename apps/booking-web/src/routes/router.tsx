@@ -35,6 +35,7 @@ import { BookingConfirmPage } from '../pages/BookingConfirmPage'
 import { BookingSuccessPage } from '../pages/BookingSuccessPage'
 import { BookingDetailPage } from '../pages/BookingDetailPage'
 import { MyBookingsPage } from '../pages/MyBookingsPage'
+import { AccountPage } from '../pages/AccountPage'
 import { FAQPage } from '../pages/FAQPage'
 import { ContactPage } from '../pages/ContactPage'
 import { PrivacyPage } from '../pages/PrivacyPage'
@@ -75,6 +76,7 @@ export const router = createBrowserRouter([
           { path: '/bookings/:bookingId/success',       element: <BookingSuccessPage /> },
           { path: '/bookings/:bookingId',               element: <BookingDetailPage /> },
           { path: '/my-bookings',                       element: <MyBookingsPage /> },
+          { path: '/account',                           element: <AccountPage /> },
         ],
       },
 

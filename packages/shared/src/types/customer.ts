@@ -35,3 +35,10 @@ export interface RegisterInput {
   phone: string
   marketingOptIn?: boolean
 }
+
+export interface UpdateCustomerProfileInput {
+  displayName: string
+  phone: string
+  marketingOptIn?: boolean
+  locale?: string
+}

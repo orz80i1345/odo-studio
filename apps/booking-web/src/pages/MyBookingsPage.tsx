@@ -29,6 +29,12 @@ export function MyBookingsPage() {
         subtitle="所有預約皆會顯示於此，包含待付款、已確認與完成的紀錄。"
       />
 
+      <div className="flex justify-end">
+        <Link to="/account" className="text-sm text-ink-2 underline underline-offset-4 hover:text-ink">
+          編輯會員資料
+        </Link>
+      </div>
+
       {isLoading && <div className="py-16 text-center"><Spinner /></div>}
 
       {!isLoading && (!data || data.items.length === 0) && (

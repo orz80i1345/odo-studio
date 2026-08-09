@@ -14,11 +14,13 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ApiError, Button, Spinner, type ID } from '@studio/shared'
+import { ApiError, Button, discountCodesApi, Spinner, type AppliedDiscount, type ID } from '@studio/shared'
 import { useStudio } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
+import { useDaySlots } from '../hooks/useAvailability'
 import { useCreateBooking } from '../hooks/useCreateBooking'
 import { useAuth } from '../auth/AuthContext'
+import { api } from '../lib'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Field } from '../components/ui/Field'
 import { Input, Textarea } from '../components/ui/Input'
@@ -50,8 +52,14 @@ export function BookingConfirmPage() {
 
   const [sceneIds, setSceneIds] = useState<ID[]>([])
   const [serverError, setServerError] = useState<string | null>(null)
+  const [discountCode, setDiscountCode] = useState('')
+  const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null)
+  const [discountError, setDiscountError] = useState<string | null>(null)
+  const [isApplyingDiscount, setIsApplyingDiscount] = useState(false)
 
   const create = useCreateBooking()
+  const slotDate = startAt ? localDateFromIso(startAt) : null
+  const { data: daySlots } = useDaySlots(studioIdNum, slotDate)
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema),
@@ -67,6 +75,23 @@ export function BookingConfirmPage() {
     () => scenes?.items.filter((s) => sceneIds.includes(s.id)).map((s) => s.name) ?? [],
     [scenes, sceneIds],
   )
+  const pricePreview = useMemo(() => {
+    if (!startAt || !endAt || !daySlots) return null
+    const start = new Date(startAt)
+    const end = new Date(endAt)
+    const startMinute = start.getHours() * 60 + start.getMinutes()
+    const endMinute = end.getHours() * 60 + end.getMinutes()
+    const slots = daySlots.slots.filter((slot) => slot.startMinute >= startMinute && slot.endMinute <= endMinute)
+    const subtotal = Math.round(slots.reduce((sum, slot) => sum + Number(slot.hourlyPrice ?? 0), 0))
+    const hours = Math.round(((+end - +start) / 3_600_000) * 100) / 100
+    const discountAmount = Math.min(appliedDiscount?.discountTotal ?? 0, subtotal)
+    return {
+      subtotal,
+      hours,
+      discountAmount,
+      totalPrice: Math.max(0, subtotal - discountAmount),
+    }
+  }, [appliedDiscount, daySlots, endAt, startAt])
 
   if (isLoading) return <div className="py-16 text-center"><Spinner /></div>
   if (!studio) return <p className="py-16 text-center text-ink-2">找不到攝影棚。</p>
@@ -100,12 +125,38 @@ export function BookingConfirmPage() {
         purpose: values.purpose || undefined,
         customerNote: values.customerNote || undefined,
         sceneIds,
+        discount: appliedDiscount ?? undefined,
       })
       nav(`/bookings/${booking.id}/success`, { replace: true })
     } catch (e) {
       setServerError(e instanceof ApiError ? e.message : '送出失敗，請稍後再試')
     }
   })
+
+  async function applyDiscount() {
+    if (!pricePreview) return
+    const code = discountCodesApi.normalizeCode(discountCode)
+    if (!code) {
+      setDiscountError('請輸入折扣碼')
+      return
+    }
+    try {
+      setDiscountError(null)
+      setIsApplyingDiscount(true)
+      const discount = await discountCodesApi.validateHourlyDiscountCode(api, {
+        code,
+        subtotal: pricePreview.subtotal,
+        totalHours: pricePreview.hours,
+      })
+      setDiscountCode(discount.code)
+      setAppliedDiscount(discount)
+    } catch (e) {
+      setAppliedDiscount(null)
+      setDiscountError(e instanceof ApiError && e.status === 404 ? '找不到此折扣碼' : e instanceof Error ? e.message : '折扣碼無法使用')
+    } finally {
+      setIsApplyingDiscount(false)
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -159,6 +210,47 @@ export function BookingConfirmPage() {
             <p className="text-xs text-ink-3">
               以上資料已從你的會員檔案帶入，可視需要修改。
             </p>
+          </section>
+
+          <section className="space-y-4 border-t border-line pt-8">
+            <h3 className="font-serif text-lg text-ink">折扣碼</h3>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Input
+                value={discountCode}
+                onChange={(event) => {
+                  setDiscountCode(event.target.value)
+                  setAppliedDiscount(null)
+                  setDiscountError(null)
+                }}
+                placeholder="輸入折扣碼"
+                className="uppercase"
+              />
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" disabled={isApplyingDiscount || !pricePreview} onClick={applyDiscount}>
+                  {isApplyingDiscount ? '套用中…' : '套用'}
+                </Button>
+                {appliedDiscount && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppliedDiscount(null)
+                      setDiscountCode('')
+                    }}
+                    className="h-10 rounded-lg border border-line px-4 text-sm text-ink-2 hover:bg-sunken hover:text-ink"
+                  >
+                    移除
+                  </button>
+                )}
+              </div>
+            </div>
+            {appliedDiscount && (
+              <p className="rounded-md bg-success-subtle px-3 py-2 text-sm text-success-subtle-ink">
+                已套用 {appliedDiscount.code}，每小時折 NT$ {appliedDiscount.discountAmount.toLocaleString()}。
+              </p>
+            )}
+            {discountError && (
+              <p className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger-subtle-ink">{discountError}</p>
+            )}
           </section>
 
           <section className="space-y-4 border-t border-line pt-8">
@@ -225,10 +317,22 @@ export function BookingConfirmPage() {
             studio={studio}
             startAt={startAt}
             endAt={endAt}
+            totalPrice={pricePreview?.totalPrice}
             sceneNames={sceneNames}
+            extraRows={[
+              ...(pricePreview ? [{ label: '原價', value: `NT$ ${pricePreview.subtotal.toLocaleString()}` }] : []),
+              ...(appliedDiscount && pricePreview
+                ? [{ label: `折扣 ${appliedDiscount.code}`, value: `- NT$ ${pricePreview.discountAmount.toLocaleString()}` }]
+                : []),
+            ]}
           />
         </aside>
       </div>
     </div>
   )
+}
+
+function localDateFromIso(value: string): string {
+  const date = new Date(value)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }

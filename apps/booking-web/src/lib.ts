@@ -3,19 +3,18 @@
  * booking-web 專用的共享單例：ApiClient、QueryClient。
  * ApiClient 會：
  *  - 帶上 customer auth token（若已登入）
- *  - 在 VITE_USE_MOCK=true 或未設 VITE_API_BASE_URL 時，改走 mock/handlers
+ *  - 只有在 VITE_USE_MOCK=true 時，改走 mock/handlers
  */
 import { QueryClient } from '@tanstack/react-query'
 import { createApiClient, ApiError, type ApiQuery } from '@studio/shared'
 import { authStorage } from './auth/storage'
 import { handleMock, MockHttpError } from './mock/handlers'
 
-const useMock =
-  import.meta.env.VITE_USE_MOCK === 'true' || !import.meta.env.VITE_API_BASE_URL
+const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
 const apiBaseUrl = import.meta.env.DEV
   ? `${window.location.origin}/api`
-  : (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api')
+  : (import.meta.env.VITE_API_BASE_URL ?? 'https://cv3op1ht.cgapps.dev/api')
 
 /** 真實 ApiClient：從環境變數讀 baseUrl，token 由 authStorage 動態提供 */
 const realApi = createApiClient({

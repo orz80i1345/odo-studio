@@ -46,7 +46,7 @@ export function RootLayout() {
             {isAuthenticated ? (
               <>
                 <Link
-                  to="/my-bookings"
+                  to="/account"
                   className="hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-ink-2 hover:bg-sunken hover:text-ink sm:inline-flex"
                 >
                   <User className="size-4" />

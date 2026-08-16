@@ -44,7 +44,7 @@ export function LoginPage() {
     <div>
       <h1 className="font-serif text-3xl text-ink">登入</h1>
       <p className="mt-2 text-sm text-ink-2">
-        還沒有帳號？<Link to={`/register?next=${encodeURIComponent(next)}`} className="text-brand hover:text-brand-hover underline underline-offset-4">註冊</Link>
+        還沒有帳號？<Link to={`/register?next=${encodeURIComponent(next)}`} className="text-accent-subtle-ink hover:text-ink underline underline-offset-4">註冊</Link>
       </p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
@@ -57,7 +57,7 @@ export function LoginPage() {
         {serverError && (
           <p className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger-subtle-ink">{serverError}</p>
         )}
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Button type="submit" className="w-full bg-ink text-ink-on hover:bg-accent-subtle-ink active:bg-ink" disabled={isSubmitting}>
           {isSubmitting ? '登入中…' : '登入'}
         </Button>
       </form>

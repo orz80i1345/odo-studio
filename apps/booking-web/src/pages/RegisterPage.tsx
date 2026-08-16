@@ -42,7 +42,7 @@ export function RegisterPage() {
     <div>
       <h1 className="font-serif text-3xl text-ink">建立會員</h1>
       <p className="mt-2 text-sm text-ink-2">
-        已有帳號？<Link to={`/login?next=${encodeURIComponent(next)}`} className="text-brand hover:text-brand-hover underline underline-offset-4">登入</Link>
+        已有帳號？<Link to={`/login?next=${encodeURIComponent(next)}`} className="text-accent-subtle-ink hover:text-ink underline underline-offset-4">登入</Link>
       </p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
@@ -59,13 +59,13 @@ export function RegisterPage() {
           <Input id="password" type="password" autoComplete="new-password" invalid={!!errors.password} {...register('password')} />
         </Field>
         <label className="flex items-center gap-2 text-sm text-ink-2">
-          <input type="checkbox" {...register('marketingOptIn')} className="accent-[color:var(--brand)]" />
+          <input type="checkbox" {...register('marketingOptIn')} className="accent-[color:var(--accent-subtle-ink)]" />
           願意收到河日的活動與新場地訊息
         </label>
         {serverError && (
           <p className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger-subtle-ink">{serverError}</p>
         )}
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Button type="submit" className="w-full bg-ink text-ink-on hover:bg-accent-subtle-ink active:bg-ink" disabled={isSubmitting}>
           {isSubmitting ? '註冊中…' : '註冊'}
         </Button>
       </form>

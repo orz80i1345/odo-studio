@@ -145,23 +145,51 @@ export function TimeSlotPicker({
     setRange({ startIdx: range.startIdx, endIdx: idx })
   }
 
+  function selectStart(value: string) {
+    if (!value) return setRange(null)
+    const idx = Number(value)
+    const slot = slots[idx]
+    if (!slot || slot.status !== 'available') return
+    setRange({ startIdx: idx, endIdx: idx })
+  }
+
+  function selectEnd(value: string) {
+    if (!range || !value) return
+    const idx = Number(value)
+    const blocked = slots.slice(range.startIdx, idx + 1).some((slot) => slot.status !== 'available')
+    if (idx < range.startIdx || blocked) return
+    setRange({ startIdx: range.startIdx, endIdx: idx })
+  }
+
+  const startOptions = slots
+    .map((slot, idx) => ({ slot, idx }))
+    .filter(({ slot }) => slot.status === 'available')
+  const endOptions = range
+    ? slots
+      .map((slot, idx) => ({ slot, idx }))
+      .filter(({ slot, idx }) => {
+        if (idx < range.startIdx || slot.status !== 'available') return false
+        return !slots.slice(range.startIdx, idx + 1).some((item) => item.status !== 'available')
+      })
+    : []
+
   if (isLoading || occupiedQuery.isLoading) {
     return (
-      <div className="rounded-xl border border-line bg-surface p-8 text-center">
+      <div className="border-y border-line py-10 text-center">
         <Spinner /> <span className="ml-2 text-sm text-ink-2">載入時段中…</span>
       </div>
     )
   }
   if (isError || !data) {
     return (
-      <div className="rounded-xl border border-line bg-surface p-8 text-center text-sm text-danger">
+      <div className="border-y border-line py-10 text-center text-sm text-danger">
         時段載入失敗。
       </div>
     )
   }
   if (data.isClosed) {
     return (
-      <div className="rounded-xl border border-line bg-black p-8 text-center text-sm text-white/70">
+      <div className="border-y border-line bg-neutral-subtle py-10 text-center text-sm text-ink-3">
         當日公休，請選擇其他日期。
       </div>
     )
@@ -174,15 +202,49 @@ export function TimeSlotPicker({
   const meetsMin = summary && summary.minutes >= minBookingMinutes && hasSelection && !buyoutUnavailable
 
   return (
-    <div className="space-y-4 rounded-xl border border-line bg-surface p-5">
-      <div className="flex items-baseline justify-between">
-        <h3 className="font-serif text-lg text-ink">選擇時段</h3>
+    <div className="space-y-8 border-y border-line py-8">
+      <div className="flex flex-col gap-3 md:flex-row md:items-baseline md:justify-between">
+        <h3 className="font-serif text-4xl text-ink">選擇時段</h3>
         <span className="text-xs text-ink-3">
-          點一次選起點，再點一次選結束；最少 {minBookingMinutes / 60} 小時
+          手機可直接選開始與結束；最少 {minBookingMinutes / 60} 小時
         </span>
       </div>
 
-      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+      <div className="grid gap-4 sm:hidden">
+        <label className="block">
+          <span className="mb-2 block text-[11px] uppercase tracking-[0.2em] text-ink-3">Start</span>
+          <select
+            value={range?.startIdx ?? ''}
+            onChange={(event) => selectStart(event.target.value)}
+            className="h-14 w-full border border-line bg-canvas px-4 text-lg text-ink outline-none focus:border-ink"
+          >
+            <option value="">選擇開始時間</option>
+            {startOptions.map(({ slot, idx }) => (
+              <option key={slot.id} value={idx}>
+                {formatMinuteRange(slot.startMinute, slot.endMinute).split('–')[0]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-2 block text-[11px] uppercase tracking-[0.2em] text-ink-3">End</span>
+          <select
+            value={range?.endIdx ?? ''}
+            onChange={(event) => selectEnd(event.target.value)}
+            disabled={!range}
+            className="h-14 w-full border border-line bg-canvas px-4 text-lg text-ink outline-none focus:border-ink disabled:text-ink-3"
+          >
+            <option value="">選擇結束時間</option>
+            {endOptions.map(({ slot, idx }) => (
+              <option key={slot.id} value={idx}>
+                {formatMinuteRange(slot.startMinute, slot.endMinute).split('–')[1]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <ul className="hidden gap-px border border-line bg-line sm:grid sm:grid-cols-4 md:grid-cols-6">
         {slots.map((s, i) => (
           <SlotCell
             key={s.id}
@@ -194,9 +256,9 @@ export function TimeSlotPicker({
         ))}
       </ul>
 
-      <section className="space-y-3 rounded-lg border border-line bg-sunken p-4">
-        <h4 className="font-serif text-base text-ink">選擇佈景</h4>
-        <div className="grid gap-2 sm:grid-cols-2">
+      <section className="space-y-4 border-t border-line pt-8">
+        <h4 className="font-serif text-3xl text-ink">選擇佈景</h4>
+        <div className="grid gap-px border border-line bg-line sm:grid-cols-2">
           {sceneAvailability.map(({ scene, unavailable }) => {
             const selected = effectiveSceneIds.includes(scene.id)
             const disabled = unavailable || forceBuyout
@@ -207,10 +269,10 @@ export function TimeSlotPicker({
                 disabled={disabled}
                 onClick={() => toggleScene(scene.id)}
                 className={cn(
-                  'rounded-lg border px-3 py-2 text-left text-sm transition-colors',
-                  selected && !unavailable && 'border-brand bg-brand-subtle text-brand-subtle-ink',
-                  !selected && !unavailable && 'border-line bg-surface text-ink hover:border-line-strong',
-                  unavailable && 'cursor-not-allowed border-line bg-neutral-subtle text-ink-3 line-through',
+                  'min-h-20 border-0 px-4 py-3 text-left text-sm transition-colors duration-500',
+                  selected && !unavailable && 'bg-brand-subtle text-brand-subtle-ink',
+                  !selected && !unavailable && 'bg-canvas text-ink hover:bg-surface',
+                  unavailable && 'cursor-not-allowed bg-neutral-subtle text-ink-3 line-through',
                   disabled && !unavailable && 'cursor-not-allowed opacity-70',
                 )}
               >
@@ -228,7 +290,7 @@ export function TimeSlotPicker({
       </section>
 
       {/* 摘要 + 確認 */}
-      <div className="flex flex-col gap-3 rounded-lg bg-sunken px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-5 border-t border-line pt-8 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm">
           {summary ? (
             <>
@@ -253,10 +315,10 @@ export function TimeSlotPicker({
           disabled={!meetsMin}
           onClick={() => summary && onConfirm({ startAt: summary.startAt, endAt: summary.endAt, sceneIds: effectiveSceneIds, bookingMode })}
           className={cn(
-            'inline-flex h-10 items-center justify-center rounded-lg px-5 text-sm font-medium transition-colors',
+            'inline-flex h-11 items-center justify-center border px-5 text-xs uppercase tracking-[0.18em] transition-colors duration-500',
             meetsMin
-              ? 'bg-brand text-brand-on hover:bg-brand-hover active:bg-brand-active'
-              : 'bg-neutral-200 text-ink-3 cursor-not-allowed',
+              ? 'border-ink bg-transparent text-ink hover:bg-ink hover:text-ink-on'
+              : 'cursor-not-allowed border-line bg-transparent text-ink-3',
           )}
         >
           下一步：填寫資料
@@ -277,11 +339,11 @@ function SlotCell({
         onClick={disabled ? undefined : onClick}
         disabled={disabled}
         className={cn(
-          'w-full rounded-md border px-2 py-2 text-sm transition-colors',
-          disabled && 'bg-neutral-subtle text-ink-3 line-through border-line cursor-not-allowed',
-          !disabled && !selected && 'bg-surface text-ink border-line hover:bg-brand-subtle hover:border-brand-subtle-ink hover:text-brand-subtle-ink',
-          selected && !isEnd && 'bg-brand-subtle text-brand-subtle-ink border-brand-subtle-ink',
-          isEnd && 'bg-brand text-brand-on border-brand',
+          'w-full border-0 px-4 py-4 text-left text-base transition-colors duration-500 sm:px-2 sm:py-3 sm:text-center sm:text-sm',
+          disabled && 'cursor-not-allowed bg-neutral-subtle text-ink-3 line-through',
+          !disabled && !selected && 'bg-canvas text-ink hover:bg-surface',
+          selected && !isEnd && 'bg-brand-subtle text-brand-subtle-ink',
+          isEnd && 'bg-brand text-brand-on',
         )}
       >
         {formatMinuteRange(slot.startMinute, slot.endMinute)}

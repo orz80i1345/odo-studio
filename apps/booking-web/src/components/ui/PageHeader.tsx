@@ -14,13 +14,13 @@ interface PageHeaderProps {
 
 export function PageHeader({ eyebrow, title, subtitle, actions, className }: PageHeaderProps) {
   return (
-    <header className={cn('flex items-end justify-between gap-6 border-b border-line pb-6', className)}>
+    <header className={cn('grid gap-8 border-b border-line pb-10 md:grid-cols-[minmax(0,1fr)_auto] md:items-end', className)}>
       <div className="min-w-0">
         {eyebrow && (
-          <p className="mb-2 text-xs uppercase tracking-[0.2em] text-ink-3">{eyebrow}</p>
+          <p className="mb-5 text-[11px] uppercase tracking-[0.28em] text-ink-3">{eyebrow}</p>
         )}
-        <h1 className="font-serif text-3xl leading-tight text-ink md:text-4xl">{title}</h1>
-        {subtitle && <p className="mt-3 max-w-2xl text-ink-2">{subtitle}</p>}
+        <h1 className="max-w-4xl font-serif text-5xl leading-[0.95] text-ink md:text-7xl">{title}</h1>
+        {subtitle && <p className="mt-7 max-w-2xl text-base leading-8 text-ink-2 md:text-lg">{subtitle}</p>}
       </div>
       {actions && <div className="shrink-0">{actions}</div>}
     </header>

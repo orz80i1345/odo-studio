@@ -6,14 +6,14 @@ import { useScenes } from '../hooks/useScenes'
 export function ScenesPage() {
   const { data, isLoading } = useScenes()
   return (
-    <div className="space-y-10">
+    <div className="space-y-16 md:space-y-24">
       <PageHeader
-        eyebrow="Scenes"
+        eyebrow="02 / Scenes"
         title="佈景展示"
-        subtitle="收集所有空間裡的佈景。點進去看更多角度。"
+        subtitle="每個佈景保留不同的光線、材質與比例。預約時可以選擇單一佈景，或選擇包場保留整個空間。"
       />
       {isLoading && <div className="py-16 text-center"><Spinner /></div>}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+      <div className="grid gap-x-10 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
         {data?.items.map((s) => <SceneCard key={s.id} scene={s} />)}
       </div>
     </div>

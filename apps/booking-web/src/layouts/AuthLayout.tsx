@@ -7,12 +7,12 @@ export function AuthLayout() {
   return (
     <div className="grid min-h-screen bg-canvas md:grid-cols-2">
       {/* 左側品牌／意象 */}
-      <aside className="hidden flex-col justify-between bg-brand-subtle p-10 md:flex">
+      <aside className="hidden flex-col justify-between bg-[#F7F1E8] p-10 md:flex">
         <Link to="/" className="flex items-baseline gap-2">
           <span className="font-serif text-2xl text-ink">河日</span>
           <span className="text-xs uppercase tracking-[0.2em] text-ink-3">Ode Studio</span>
         </Link>
-        <blockquote className="font-serif text-2xl leading-snug text-ink">
+        <blockquote className="font-serif text-4xl leading-tight text-ink">
           光落下的方式，決定了空間的樣子。
         </blockquote>
         <div className="text-xs text-ink-3">

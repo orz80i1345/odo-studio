@@ -59,20 +59,20 @@ export function BookingCalendarPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-16">
       <PageHeader
         eyebrow={eyebrow}
         title="選擇日期與時段"
         subtitle="先選一個日期，再選連續的時段區間；之後會帶你去填聯絡資料。"
         actions={
-          <Link to={`/studios/${studio.slug}`} className="text-sm text-ink-2 hover:text-ink">
+          <Link to={`/studios/${studio.slug}`} className="border-b border-line-strong pb-1 text-xs uppercase tracking-[0.18em] text-ink-2 hover:text-ink">
             ← 回空間介紹
           </Link>
         }
       />
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-        <div className="min-w-0 space-y-6">
+      <div className="grid gap-12 lg:grid-cols-[1fr_360px] lg:gap-16">
+        <div className="min-w-0 space-y-10">
           <MonthCalendar
             studioId={studio.id}
             yearMonth={yearMonth}
@@ -102,10 +102,10 @@ export function BookingCalendarPage() {
         </div>
 
         {/* 側欄：預約方式 */}
-        <aside className="h-fit rounded-xl border border-line bg-surface p-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink-3">Booking Type</p>
-          <h3 className="mt-2 font-serif text-2xl text-ink">預約方式</h3>
-          <div className="mt-5 space-y-3 border-t border-line pt-5">
+        <aside className="h-fit border-y border-line py-7">
+          <p className="text-[11px] uppercase tracking-[0.26em] text-ink-3">Booking Type</p>
+          <h3 className="mt-3 font-serif text-3xl text-ink">預約方式</h3>
+          <div className="mt-7 space-y-px border-y border-line bg-line">
             <ModeCard
               active={bookingMode === 'scenes'}
               title="佈景預約"
@@ -126,9 +126,9 @@ export function BookingCalendarPage() {
             />
           </div>
           {scenes && scenes.items.length > 0 && (
-            <div className="mt-5 space-y-2 border-t border-line pt-5">
-              <p className="text-xs uppercase tracking-[0.16em] text-ink-3">Scene Prices</p>
-              <dl className="space-y-2 text-sm">
+            <div className="mt-7 space-y-3 border-t border-line pt-7">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-ink-3">Scene Prices</p>
+              <dl className="space-y-3 text-sm">
                 {scenes.items.map((scene) => (
                   <div key={scene.id} className="flex items-baseline justify-between gap-4">
                     <dt className="min-w-0 truncate text-ink-2">{scene.name}</dt>
@@ -140,7 +140,7 @@ export function BookingCalendarPage() {
               </dl>
             </div>
           )}
-          <div className="mt-5 rounded-md bg-sunken p-3 text-sm text-ink-2">
+          <div className="mt-7 border-t border-line pt-5 text-sm text-ink-2">
             <div className="flex justify-between gap-4">
               <span>目前</span>
               <span className="text-ink">{bookingMode === 'buyout' ? '包場' : '佈景預約'}</span>
@@ -150,7 +150,7 @@ export function BookingCalendarPage() {
               <span className="text-ink">{bookingMode === 'buyout' ? '全部' : `${selectedSceneIds.length} 個`}</span>
             </div>
           </div>
-          <p className="mt-5 rounded-md bg-brand-subtle/60 p-3 text-xs text-brand-subtle-ink">
+          <p className="mt-6 border-l border-brand pl-4 text-xs leading-6 text-ink-2">
             選擇 2 個以上佈景會自動以包場價格計算。
           </p>
         </aside>
@@ -175,10 +175,10 @@ function ModeCard({
       type="button"
       onClick={onClick}
       className={cn(
-        'w-full rounded-lg border p-4 text-left transition-colors',
+        'w-full border-0 p-4 text-left transition-colors duration-500',
         active
-          ? 'border-brand bg-brand-subtle text-brand-subtle-ink'
-          : 'border-line bg-sunken text-ink-2 hover:border-line-strong hover:text-ink',
+          ? 'bg-brand-subtle text-brand-subtle-ink'
+          : 'bg-canvas text-ink-2 hover:bg-surface hover:text-ink',
       )}
     >
       <span className="block font-medium">{title}</span>

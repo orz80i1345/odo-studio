@@ -51,22 +51,22 @@ export function MonthCalendar({ studioId, yearMonth, onChangeMonth, selectedDate
   }
 
   return (
-    <div className="rounded-xl border border-line bg-surface">
+    <div className="border-y border-line">
       {/* header：月份切換 */}
-      <div className="flex items-center justify-between border-b border-line px-5 py-4">
+      <div className="flex items-center justify-between border-b border-line py-6">
         <button
           type="button"
           onClick={() => goto(-1)}
-          className="rounded-md p-1.5 text-ink-2 hover:bg-sunken hover:text-ink"
+          className="p-2 text-ink-2 transition-colors duration-500 hover:text-ink"
           aria-label="上個月"
         >
           <ChevronLeft className="size-4" />
         </button>
-        <div className="font-serif text-lg text-ink">{format(monthStart, 'yyyy 年 M 月')}</div>
+        <div className="font-serif text-4xl text-ink">{format(monthStart, 'yyyy 年 M 月')}</div>
         <button
           type="button"
           onClick={() => goto(1)}
-          className="rounded-md p-1.5 text-ink-2 hover:bg-sunken hover:text-ink"
+          className="p-2 text-ink-2 transition-colors duration-500 hover:text-ink"
           aria-label="下個月"
         >
           <ChevronRight className="size-4" />
@@ -74,7 +74,7 @@ export function MonthCalendar({ studioId, yearMonth, onChangeMonth, selectedDate
       </div>
 
       {/* 週工作日列 */}
-      <div className="grid grid-cols-7 border-b border-line text-center text-xs text-ink-3">
+      <div className="grid grid-cols-7 border-b border-line text-center text-[11px] uppercase tracking-[0.2em] text-ink-3">
         {WEEKDAYS.map((w, i) => (
           <div key={w} className={cn('py-2', (i === 0 || i === 6) && 'text-ink-2')}>
             {w}
@@ -115,10 +115,10 @@ export function MonthCalendar({ studioId, yearMonth, onChangeMonth, selectedDate
       </div>
 
       {/* 圖例 */}
-      <div className="flex flex-wrap items-center gap-4 border-t border-line px-5 py-3 text-xs text-ink-3">
+      <div className="flex flex-wrap items-center gap-4 border-t border-line py-4 text-xs text-ink-3">
         <Legend swatch="bg-brand-subtle" label="可預約" />
         <Legend swatch="bg-neutral-subtle" label="已滿" />
-        <Legend swatch="bg-black" label="公休" />
+        <Legend swatch="bg-neutral-subtle" label="公休" />
         <span className="ml-auto">週末以較深底色標示；今日以邊框標示。</span>
       </div>
     </div>
@@ -128,7 +128,7 @@ export function MonthCalendar({ studioId, yearMonth, onChangeMonth, selectedDate
 function Legend({ swatch, label }: { swatch: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={cn('inline-block size-3 rounded', swatch)} />
+      <span className={cn('inline-block size-3', swatch)} />
       {label}
     </span>
   )
@@ -150,13 +150,13 @@ interface DayCellProps {
 function DayCell({
   dayNumber, inMonth, isToday, isWeekend, selected, disabled, loading, day, onClick,
 }: DayCellProps) {
-  const base = 'relative border-b border-r border-line px-2 py-2 min-h-[80px] text-left transition-colors'
+  const base = 'relative border-b border-r border-line px-3 py-3 min-h-[96px] text-left transition-colors duration-500'
   const state = day?.isClosed
-    ? 'bg-black text-white/70 cursor-not-allowed'
+    ? 'bg-neutral-subtle text-ink-3 cursor-not-allowed'
     : disabled
     ? 'bg-neutral-subtle text-ink-3 cursor-not-allowed'
     : selected
-      ? 'bg-brand-subtle text-brand-subtle-ink ring-2 ring-inset ring-brand'
+      ? 'bg-brand-subtle text-brand-subtle-ink ring-1 ring-inset ring-brand'
       : day && day.availableCount > 0
         ? 'bg-surface hover:bg-brand-subtle hover:text-brand-subtle-ink cursor-pointer'
         : 'bg-surface hover:bg-sunken cursor-pointer'
@@ -173,12 +173,12 @@ function DayCell({
       )}
     >
       <div className="flex items-baseline justify-between">
-        <span className={cn('text-sm font-medium', isToday && 'rounded px-1.5 ring-1 ring-brand')}>{dayNumber}</span>
+        <span className={cn('text-2xl font-normal', isToday && 'border-b border-brand')}>{dayNumber}</span>
         {loading ? (
           <span className="text-[10px] text-ink-3">…</span>
         ) : day ? (
           day.isClosed ? (
-            <span className="text-[10px] text-white/70">公休</span>
+            <span className="text-[10px] text-ink-3">公休</span>
           ) : (
             <span className="text-[10px] text-ink-3">{day.availableCount}/{day.totalCount}</span>
           )

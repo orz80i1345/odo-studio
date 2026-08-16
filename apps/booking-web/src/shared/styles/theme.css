@@ -155,7 +155,7 @@
 
   /* ---------- 字體 / 圓角 / 陰影 ---------- */
   --font-sans:  'Noto Sans TC', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Noto Serif TC', 'Cormorant Garamond', ui-serif, Georgia, serif;
+  --font-serif: 'Libre Caslon Display', 'Noto Serif TC', 'Cormorant Garamond', ui-serif, Georgia, serif;
 
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
@@ -344,10 +344,51 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  letter-spacing: 0;
+}
+
+:root,
+:root:not(.dark) {
+  --canvas: #f4efed;
+  --surface: #fbf7f5;
+  --raised: #fffaf8;
+  --sunken: #e8ded9;
+
+  --ink: #403431;
+  --ink-2: #746863;
+  --ink-3: #958883;
+  --ink-on: #f4efed;
+
+  --line: rgba(64, 52, 49, 0.15);
+  --line-strong: rgba(64, 52, 49, 0.27);
+
+  --brand: #7c8061;
+  --brand-hover: #686c51;
+  --brand-active: #565a43;
+  --brand-on: #f7f3eb;
+  --brand-subtle: #e0dfd2;
+  --brand-subtle-ink: #4f523d;
+  --brand-ring: rgba(124, 128, 97, 0.35);
+
+  --accent: #b96f4c;
+  --accent-subtle: #ead1c8;
+  --accent-subtle-ink: #73412c;
+
+  --neutral-subtle: #ded4d0;
+  --neutral-subtle-ink: #403431;
+
+  --shadow-quiet: none;
+  --shadow-card: none;
+  --shadow-raised: none;
+}
+
+img,
+video {
+  background-color: var(--sunken);
 }
 
 ::selection {
-  background: oklch(0.905 0.038 70 / 0.55);  /* clay-200 半透，暖 highlight */
+  background: rgba(185, 111, 76, 0.25);
   color: var(--ink);
 }
 

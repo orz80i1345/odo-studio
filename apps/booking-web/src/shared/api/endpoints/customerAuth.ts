@@ -81,6 +81,10 @@ export async function getCurrentCustomerProfile(api: ApiClient) {
   return profile ?? me
 }
 
+export async function getCustomerProfileByEmail(api: ApiClient, email: string) {
+  return findCustomerProfileByEmail(api, email)
+}
+
 export async function ensureCustomerProfile(api: ApiClient, input: RegisterInput) {
   const existing = await findCustomerProfileByEmail(api, input.email)
   if (existing) {
@@ -125,10 +129,10 @@ export function customerLogout(api: ApiClient) {
 async function findCustomerProfileByEmail(api: ApiClient, email: string) {
   if (!email) return null
   const res = await api.get<ScaffoldListResponse<RawCustomerAccount>>('/public/customer_accounts', {
-    filters: [filter('email', 'eq', email)],
+    filter: [filter('email', 'eq', email)],
     pageSize: 1,
   })
-  return toScaffoldList(res, toCustomer).items[0] ?? null
+  return toScaffoldList(res, toCustomer).items.find((customer) => customer.email === email) ?? null
 }
 
 async function createCustomerProfile(api: ApiClient, email: string, input: UpdateCustomerProfileInput) {

@@ -57,6 +57,10 @@ CREATE TRIGGER trg_time_slots_updated
     BEFORE UPDATE ON time_slots
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+CREATE TRIGGER trg_studio_daily_availability_updated
+    BEFORE UPDATE ON studio_daily_availability
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 CREATE TRIGGER trg_special_dates_updated
     BEFORE UPDATE ON special_dates
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

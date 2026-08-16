@@ -12,6 +12,8 @@ export function SceneCard({ scene }: { scene: Scene }) {
           <img
             src={scene.coverUrl}
             alt={scene.name}
+            loading="lazy"
+            decoding="async"
             className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
           />
         )}

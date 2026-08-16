@@ -19,6 +19,8 @@ export const queryKeys = {
   },
   pricing: {
     plans: (studioId?: ID) => ['pricing-plans', { studioId }] as const,
+    scenePrices: (sceneIds?: ID[]) => ['scene-prices', { sceneIds }] as const,
+    studioPrices: (studioIds?: ID[]) => ['studio-prices', { studioIds }] as const,
   },
   bookings: {
     all: ['bookings'] as const,

@@ -11,6 +11,8 @@ export function SceneDetailPage() {
   if (isLoading) return <div className="py-16 text-center"><Spinner /></div>
   if (!scene) return <p className="py-16 text-center text-ink-2">找不到佈景。</p>
 
+  const images = scene.images.slice(0, 3)
+
   return (
     <article className="space-y-10">
       <header>
@@ -26,9 +28,15 @@ export function SceneDetailPage() {
 
       {/* gallery */}
       <div className="grid gap-4 md:grid-cols-2">
-        {scene.images.map((img) => (
+        {images.map((img) => (
           <div key={img.id} className="overflow-hidden rounded-xl border border-line bg-sunken">
-            <img src={img.url} alt={img.altText ?? scene.name} className="size-full object-cover" />
+            <img
+              src={img.url}
+              alt={img.altText ?? scene.name}
+              loading="lazy"
+              decoding="async"
+              className="size-full object-cover"
+            />
           </div>
         ))}
       </div>

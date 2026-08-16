@@ -19,6 +19,8 @@ export const queryKeys = {
   },
   pricing: {
     plans: (studioId?: ID) => ['pricing-plans', { studioId }] as const,
+    scenePrices: (sceneIds?: ID[]) => ['scene-prices', { sceneIds }] as const,
+    studioPrices: (studioIds?: ID[]) => ['studio-prices', { studioIds }] as const,
   },
   bookings: {
     all: ['bookings'] as const,
@@ -27,6 +29,12 @@ export const queryKeys = {
   },
   bankAccounts: {
     active: ['bank-accounts', 'active'] as const,
+  },
+  equipment: {
+    all: ['equipment'] as const,
+    active: ['equipment', 'active'] as const,
+    booking: (bookingId: ID) => ['equipment', 'booking', bookingId] as const,
+    availability: (timeSlotIds?: ID[]) => ['equipment', 'availability', { timeSlotIds }] as const,
   },
   customerAuth: {
     me: ['customer', 'auth', 'me'] as const,

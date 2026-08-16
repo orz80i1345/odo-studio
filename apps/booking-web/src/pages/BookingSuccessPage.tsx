@@ -16,6 +16,7 @@ import { useBooking } from '../hooks/useMyBookings'
 import { useStudio } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
 import { useActiveBankAccounts } from '../hooks/useBankAccounts'
+import { useBookingEquipment } from '../hooks/useEquipment'
 import { BookingSummary } from '../components/Booking/BookingSummary'
 import { BankTransferInfo } from '../components/Booking/BankTransferInfo'
 import { BookingStatusBadge } from '../components/Booking/BookingStatusBadge'
@@ -28,6 +29,7 @@ export function BookingSuccessPage() {
   const { data: studio } = useStudio(booking?.studioId)
   const { data: scenes } = useScenes(booking?.studioId)
   const { data: bankAccounts } = useActiveBankAccounts()
+  const { data: bookingEquipment } = useBookingEquipment(bookingIdNum)
 
   if (isLoading) return <div className="py-16 text-center"><Spinner /></div>
   if (!booking || !studio) return <p className="py-16 text-center text-ink-2">找不到此預約。</p>
@@ -36,6 +38,9 @@ export function BookingSuccessPage() {
     scenes?.items.filter((s) => booking.sceneIds.includes(s.id)).map((s) => s.name) ?? []
 
   const bank = bankAccounts?.find((b) => b.isDefault) ?? bankAccounts?.[0]
+  const paymentLabel = booking.depositAmount >= booking.totalPrice ? '應付全額' : '訂金'
+  const equipmentNames = bookingEquipment?.map((item) => item.name) ?? []
+  const equipmentTotal = bookingEquipment?.reduce((sum, item) => sum + item.subtotal, 0) ?? 0
 
   return (
     <div className="space-y-8">
@@ -52,7 +57,7 @@ export function BookingSuccessPage() {
             </div>
             <p className="mt-2 text-ink-2">
               訂單編號 <span className="font-medium text-ink">{booking.bookingNumber}</span>
-              　·　請於 24 小時內完成訂金匯款，即可正式確認檔期。
+              　·　請於 24 小時內完成匯款，即可正式確認檔期。
             </p>
           </div>
         </div>
@@ -65,6 +70,7 @@ export function BookingSuccessPage() {
             <BankTransferInfo
               bankAccount={bank}
               amount={booking.depositAmount}
+              amountLabel={paymentLabel}
               bookingNumber={booking.bookingNumber}
             />
           ) : (
@@ -97,7 +103,9 @@ export function BookingSuccessPage() {
             sceneNames={sceneNames}
             bookingNumber={booking.bookingNumber}
             extraRows={[
-              { label: '訂金', value: `NT$ ${booking.depositAmount.toLocaleString()}` },
+              ...(equipmentNames.length > 0 ? [{ label: '器材', value: equipmentNames.join('、') }] : []),
+              ...(equipmentTotal > 0 ? [{ label: '器材租借', value: `NT$ ${equipmentTotal.toLocaleString()}` }] : []),
+              { label: paymentLabel, value: `NT$ ${booking.depositAmount.toLocaleString()}` },
             ]}
           />
         </aside>

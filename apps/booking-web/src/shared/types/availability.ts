@@ -3,6 +3,7 @@
  * 月曆 availability 查詢的回傳型別，對應 schema 的 time_slots。
  */
 import type { ID, DateString, ISODateTime } from './common'
+import type { BookingMode } from './booking'
 
 export type TimeSlotStatus =
   | 'available'
@@ -20,6 +21,7 @@ export interface TimeSlot {
   startMinute: number
   endMinute: number
   status: TimeSlotStatus
+  bookingId?: ID | null
   hourlyPrice?: number
 }
 
@@ -60,4 +62,5 @@ export interface BookingDraft {
   startAt: ISODateTime
   endAt: ISODateTime
   sceneIds?: ID[]
+  bookingMode?: BookingMode
 }

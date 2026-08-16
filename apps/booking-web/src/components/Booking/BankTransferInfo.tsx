@@ -11,9 +11,10 @@ interface Props {
   bankAccount: BankAccount
   amount: number
   bookingNumber: string
+  amountLabel?: string
 }
 
-export function BankTransferInfo({ bankAccount, amount, bookingNumber }: Props) {
+export function BankTransferInfo({ bankAccount, amount, bookingNumber, amountLabel = '應付金額' }: Props) {
   return (
     <div className="rounded-xl border border-line bg-accent-subtle/60 p-6">
       <h3 className="font-serif text-lg text-ink">匯款資訊</h3>
@@ -26,7 +27,7 @@ export function BankTransferInfo({ bankAccount, amount, bookingNumber }: Props) 
         <Row label="分行" value={bankAccount.branchName ?? '—'} />
         <Row label="戶名" value={bankAccount.accountHolder} />
         <Row label="帳號" value={bankAccount.accountNumber} copyable />
-        <Row label="金額" value={`NT$ ${amount.toLocaleString()}`} copyable copyText={String(amount)} />
+        <Row label={amountLabel} value={`NT$ ${amount.toLocaleString()}`} copyable copyText={String(amount)} />
         <Row label="備註（訂單編號）" value={bookingNumber} copyable />
       </dl>
 

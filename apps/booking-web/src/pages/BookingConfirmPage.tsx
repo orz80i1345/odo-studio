@@ -19,18 +19,16 @@ import { useStudio } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
 import { useDaySlots } from '../hooks/useAvailability'
 import { useCreateBooking } from '../hooks/useCreateBooking'
+import { useEquipmentItems, useEquipmentReservations } from '../hooks/useEquipment'
+import { useScenePrices, useStudioBuyoutPrice } from '../hooks/usePricing'
 import { useAuth } from '../auth/AuthContext'
 import { api } from '../lib'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Field } from '../components/ui/Field'
 import { Input, Textarea } from '../components/ui/Input'
 import { BookingSummary } from '../components/Booking/BookingSummary'
-import { SceneMultiSelect } from '../components/Booking/SceneMultiSelect'
 
 const schema = z.object({
-  customerName: z.string().min(2, '請輸入姓名'),
-  customerPhone: z.string().min(8, '請輸入聯絡電話'),
-  customerEmail: z.string().email('請輸入正確 email'),
   headcount: z.coerce.number().int().min(1).max(50).optional(),
   purpose: z.string().max(120).optional(),
   customerNote: z.string().max(500).optional(),
@@ -45,62 +43,91 @@ export function BookingConfirmPage() {
 
   const startAt = params.get('start')
   const endAt = params.get('end')
+  const selectedSceneIds = parseSceneIds(params.get('scenes'))
+  const bookingMode = params.get('mode') === 'buyout' ? 'buyout' : 'scenes'
 
   const studioIdNum = studioId ? Number(studioId) : undefined
   const { data: studio, isLoading } = useStudio(studioIdNum)
   const { data: scenes } = useScenes(studioIdNum)
 
-  const [sceneIds, setSceneIds] = useState<ID[]>([])
   const [serverError, setServerError] = useState<string | null>(null)
   const [discountCode, setDiscountCode] = useState('')
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null)
   const [discountError, setDiscountError] = useState<string | null>(null)
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false)
+  const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<ID[]>([])
 
   const create = useCreateBooking()
   const slotDate = startAt ? localDateFromIso(startAt) : null
   const { data: daySlots } = useDaySlots(studioIdNum, slotDate)
+  const allSceneIds = scenes?.items.map((scene) => scene.id) ?? []
+  const { data: scenePrices } = useScenePrices(allSceneIds)
+  const { data: buyoutPrice } = useStudioBuyoutPrice(studioIdNum)
+  const { data: equipmentPage } = useEquipmentItems()
+  const selectedTimeSlotIds = useMemo(() => {
+    if (!startAt || !endAt || !daySlots) return []
+    const { startMinute, endMinute } = bookingRangeMinutes(startAt, endAt)
+    return daySlots.slots
+      .filter((slot) => slot.startMinute >= startMinute && slot.endMinute <= endMinute)
+      .map((slot) => slot.id)
+  }, [daySlots, endAt, startAt])
+  const { data: equipmentReservations } = useEquipmentReservations(selectedTimeSlotIds)
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema),
-    // 需求 4：預約表單要自動帶入使用者資料
-    defaultValues: {
-      customerName: user?.displayName ?? '',
-      customerPhone: user?.phone ?? '',
-      customerEmail: user?.email ?? '',
-    },
   })
 
   const sceneNames = useMemo(
-    () => scenes?.items.filter((s) => sceneIds.includes(s.id)).map((s) => s.name) ?? [],
-    [scenes, sceneIds],
+    () => scenes?.items.filter((s) => selectedSceneIds.includes(s.id)).map((s) => s.name) ?? [],
+    [scenes, selectedSceneIds],
+  )
+  const scenePriceById = useMemo(
+    () => new Map(scenePrices?.map((price) => [price.sceneId, price.hourlyPrice]) ?? []),
+    [scenePrices],
+  )
+  const reservedEquipmentIds = useMemo(
+    () => new Set(equipmentReservations?.map((item) => item.equipmentItemId) ?? []),
+    [equipmentReservations],
+  )
+  const selectedEquipment = useMemo(
+    () => equipmentPage?.items.filter((item) => selectedEquipmentIds.includes(item.id)) ?? [],
+    [equipmentPage, selectedEquipmentIds],
   )
   const pricePreview = useMemo(() => {
-    if (!startAt || !endAt || !daySlots) return null
+    if (!startAt || !endAt || !daySlots || !studio) return null
+    const { startMinute, endMinute } = bookingRangeMinutes(startAt, endAt)
+    const slots = daySlots.slots.filter((slot) => slot.startMinute >= startMinute && slot.endMinute <= endMinute)
     const start = new Date(startAt)
     const end = new Date(endAt)
-    const startMinute = start.getHours() * 60 + start.getMinutes()
-    const endMinute = end.getHours() * 60 + end.getMinutes()
-    const slots = daySlots.slots.filter((slot) => slot.startMinute >= startMinute && slot.endMinute <= endMinute)
-    const subtotal = Math.round(slots.reduce((sum, slot) => sum + Number(slot.hourlyPrice ?? 0), 0))
     const hours = Math.round(((+end - +start) / 3_600_000) * 100) / 100
+    const fallbackHourly = slots.length > 0
+      ? slots.reduce((sum, slot) => sum + Number(slot.hourlyPrice ?? 0), 0) / slots.length
+      : studio.defaultHourlyPrice
+    const hourlyPrice = bookingMode === 'buyout'
+      ? buyoutPrice?.hourlyPrice ?? fallbackHourly
+      : selectedSceneIds.reduce((sum, sceneId) => sum + (scenePriceById.get(sceneId) ?? fallbackHourly), 0)
+    const subtotal = Math.round(hourlyPrice * hours)
+    const equipmentTotal = selectedEquipment.reduce((sum, item) => sum + item.unitPrice, 0)
     const discountAmount = Math.min(appliedDiscount?.discountTotal ?? 0, subtotal)
     return {
-      subtotal,
+      subtotal: subtotal + equipmentTotal,
+      studioSubtotal: subtotal,
+      equipmentTotal,
       hours,
+      hourlyPrice,
       discountAmount,
-      totalPrice: Math.max(0, subtotal - discountAmount),
+      totalPrice: Math.max(0, subtotal + equipmentTotal - discountAmount),
     }
-  }, [appliedDiscount, daySlots, endAt, startAt])
+  }, [appliedDiscount, bookingMode, buyoutPrice, daySlots, endAt, selectedEquipment, selectedSceneIds, scenePriceById, startAt, studio])
 
   if (isLoading) return <div className="py-16 text-center"><Spinner /></div>
   if (!studio) return <p className="py-16 text-center text-ink-2">找不到攝影棚。</p>
 
-  if (!startAt || !endAt) {
+  if (!startAt || !endAt || selectedSceneIds.length === 0) {
     return (
       <div className="mx-auto max-w-md rounded-xl border border-line bg-surface p-8 text-center">
         <p className="font-serif text-xl text-ink">尚未選擇時段</p>
-        <p className="mt-2 text-sm text-ink-2">請先回月曆選一個日期與時段。</p>
+        <p className="mt-2 text-sm text-ink-2">請先回月曆選日期、時段與佈景。</p>
         <Link
           to={`/book/${studioIdNum}`}
           className="mt-6 inline-flex h-10 items-center rounded-lg bg-brand px-5 text-sm font-medium text-brand-on hover:bg-brand-hover"
@@ -114,18 +141,24 @@ export function BookingConfirmPage() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       setServerError(null)
+      if (!user?.email || !user.displayName || !user.phone) {
+        setServerError('會員資料不完整，請先補齊姓名、電話與 Email。')
+        return
+      }
       const booking = await create.mutateAsync({
         studioId: studio.id,
         startAt,
         endAt,
-        customerName: values.customerName,
-        customerPhone: values.customerPhone,
-        customerEmail: values.customerEmail,
+        customerName: user.displayName,
+        customerPhone: user.phone,
+        customerEmail: user.email,
         headcount: values.headcount,
         purpose: values.purpose || undefined,
         customerNote: values.customerNote || undefined,
-        sceneIds,
+        sceneIds: selectedSceneIds,
+        bookingMode,
         discount: appliedDiscount ?? undefined,
+        equipmentItemIds: selectedEquipmentIds,
       })
       nav(`/bookings/${booking.id}/success`, { replace: true })
     } catch (e) {
@@ -179,37 +212,54 @@ export function BookingConfirmPage() {
         <form onSubmit={onSubmit} className="min-w-0 space-y-8 rounded-xl border border-line bg-surface p-6 md:p-8">
           <section className="space-y-4">
             <h3 className="font-serif text-lg text-ink">聯絡資料</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="姓名" htmlFor="customerName" error={errors.customerName?.message} required>
-                <Input
-                  id="customerName"
-                  autoComplete="name"
-                  invalid={!!errors.customerName}
-                  {...register('customerName')}
-                />
-              </Field>
-              <Field label="聯絡電話" htmlFor="customerPhone" error={errors.customerPhone?.message} required>
-                <Input
-                  id="customerPhone"
-                  type="tel"
-                  autoComplete="tel"
-                  invalid={!!errors.customerPhone}
-                  {...register('customerPhone')}
-                />
-              </Field>
+            <dl className="grid gap-3 rounded-lg border border-line bg-sunken p-4 text-sm sm:grid-cols-3">
+              <ContactRow label="姓名" value={user?.displayName ?? '尚未設定'} />
+              <ContactRow label="電話" value={user?.phone ?? '尚未設定'} />
+              <ContactRow label="Email" value={user?.email ?? '尚未設定'} />
+            </dl>
+          </section>
+
+          <section className="space-y-4 border-t border-line pt-8">
+            <div>
+              <h3 className="font-serif text-lg text-ink">器材租借（選填）</h3>
+              <p className="mt-1 text-sm text-ink-3">每項器材同一時段只能租借一次；已被租借的器材會無法選擇。</p>
             </div>
-            <Field label="Email" htmlFor="customerEmail" error={errors.customerEmail?.message} required>
-              <Input
-                id="customerEmail"
-                type="email"
-                autoComplete="email"
-                invalid={!!errors.customerEmail}
-                {...register('customerEmail')}
-              />
-            </Field>
-            <p className="text-xs text-ink-3">
-              以上資料已從你的會員檔案帶入，可視需要修改。
-            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(equipmentPage?.items ?? []).map((item) => {
+                const unavailable = reservedEquipmentIds.has(item.id)
+                const selected = selectedEquipmentIds.includes(item.id)
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={unavailable}
+                    onClick={() => {
+                      setSelectedEquipmentIds((ids) =>
+                        ids.includes(item.id) ? ids.filter((id) => id !== item.id) : [...ids, item.id],
+                      )
+                    }}
+                    className={[
+                      'min-h-24 rounded-lg border p-4 text-left transition-colors',
+                      unavailable
+                        ? 'cursor-not-allowed border-line bg-sunken text-ink-3 opacity-60'
+                        : selected
+                          ? 'border-brand bg-brand-subtle text-brand-subtle-ink'
+                          : 'border-line bg-sunken text-ink-2 hover:border-line-strong hover:text-ink',
+                    ].join(' ')}
+                  >
+                    <span className="block font-medium">{item.name}</span>
+                    {item.description && <span className="mt-1 block text-xs opacity-80">{item.description}</span>}
+                    <span className="mt-3 block text-sm text-ink">NT$ {item.unitPrice.toLocaleString()}</span>
+                    {unavailable && <span className="mt-2 block text-xs text-danger">此時段已被租借</span>}
+                  </button>
+                )
+              })}
+              {equipmentPage && equipmentPage.items.length === 0 && (
+                <p className="rounded-lg border border-line bg-sunken p-4 text-sm text-ink-3 sm:col-span-2">
+                  目前沒有可租借器材。
+                </p>
+              )}
+            </div>
           </section>
 
           <section className="space-y-4 border-t border-line pt-8">
@@ -278,12 +328,6 @@ export function BookingConfirmPage() {
               </Field>
             </div>
 
-            {scenes && scenes.items.length > 0 && (
-              <Field label="預計使用的佈景" hint="可多選，也可留白到現場再決定">
-                <SceneMultiSelect scenes={scenes.items} value={sceneIds} onChange={setSceneIds} />
-              </Field>
-            )}
-
             <Field label="給我們的備註" htmlFor="customerNote" error={errors.customerNote?.message}
               hint="場地佈置需求、抵達時間、器材協助等"
             >
@@ -305,7 +349,7 @@ export function BookingConfirmPage() {
             <p className="text-xs text-ink-3">
               送出後將建立訂單，並顯示匯款帳號。
             </p>
-            <Button type="submit" disabled={isSubmitting || create.isPending}>
+            <Button type="submit" disabled={isSubmitting || create.isPending || selectedSceneIds.length === 0}>
               {isSubmitting || create.isPending ? '送出中…' : '確認送出'}
             </Button>
           </div>
@@ -320,6 +364,9 @@ export function BookingConfirmPage() {
             totalPrice={pricePreview?.totalPrice}
             sceneNames={sceneNames}
             extraRows={[
+              ...(pricePreview ? [{ label: bookingMode === 'buyout' ? '包場單價' : '每小時計價', value: `NT$ ${pricePreview.hourlyPrice.toLocaleString()}/hr` }] : []),
+              ...(pricePreview ? [{ label: '場地費用', value: `NT$ ${pricePreview.studioSubtotal.toLocaleString()}` }] : []),
+              ...(pricePreview && pricePreview.equipmentTotal > 0 ? [{ label: '器材租借', value: `NT$ ${pricePreview.equipmentTotal.toLocaleString()}` }] : []),
               ...(pricePreview ? [{ label: '原價', value: `NT$ ${pricePreview.subtotal.toLocaleString()}` }] : []),
               ...(appliedDiscount && pricePreview
                 ? [{ label: `折扣 ${appliedDiscount.code}`, value: `- NT$ ${pricePreview.discountAmount.toLocaleString()}` }]
@@ -332,7 +379,31 @@ export function BookingConfirmPage() {
   )
 }
 
+function ContactRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-ink-3">{label}</dt>
+      <dd className="mt-1 text-ink">{value}</dd>
+    </div>
+  )
+}
+
+function parseSceneIds(value: string | null): ID[] {
+  return value?.split(',').map(Number).filter(Number.isFinite) ?? []
+}
+
 function localDateFromIso(value: string): string {
   const date = new Date(value)
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function bookingRangeMinutes(startAt: string, endAt: string) {
+  const start = new Date(startAt)
+  const end = new Date(endAt)
+  const slotDate = localDateFromIso(startAt)
+  const endDate = localDateFromIso(endAt)
+  const startMinute = start.getHours() * 60 + start.getMinutes()
+  const rawEndMinute = end.getHours() * 60 + end.getMinutes()
+  const endMinute = endDate > slotDate || rawEndMinute <= startMinute ? 1440 : rawEndMinute
+  return { startMinute, endMinute }
 }

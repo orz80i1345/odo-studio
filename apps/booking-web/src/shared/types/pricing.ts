@@ -25,3 +25,30 @@ export interface PricingPlan {
   priority: number
   isActive: boolean
 }
+
+export interface ScenePrice {
+  id: ID
+  sceneId: ID
+  hourlyPrice: number
+  effectiveFrom?: DateString
+  effectiveTo?: DateString
+  isActive: boolean
+  metadata: Record<string, unknown>
+  createdAt: DateString
+  updatedAt: DateString
+}
+
+export type StudioPriceType = 'buyout'
+
+export interface StudioPrice {
+  id: ID
+  studioId: ID
+  priceType: StudioPriceType
+  hourlyPrice: number
+  effectiveFrom?: DateString
+  effectiveTo?: DateString
+  isActive: boolean
+  metadata: Record<string, unknown>
+  createdAt: DateString
+  updatedAt: DateString
+}

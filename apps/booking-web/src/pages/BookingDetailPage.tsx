@@ -6,14 +6,15 @@
  * 顯示 booking 全部資訊 + 匯款資訊（若尚未付款）+ 取消按鈕（若狀態允許）。
  * 取消採 confirm() 二次確認；成功後導回列表。
  */
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ApiError, Spinner, isPendingPayment } from '@studio/shared'
+import { ApiError, Spinner, isPendingPayment, type BookingPaymentProof } from '@studio/shared'
 import { useBooking } from '../hooks/useMyBookings'
 import { useStudio } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
-import { useCancelBooking } from '../hooks/useCreateBooking'
+import { useCancelBooking, useSubmitPaymentProof } from '../hooks/useCreateBooking'
 import { useActiveBankAccounts } from '../hooks/useBankAccounts'
+import { useBookingEquipment } from '../hooks/useEquipment'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BookingSummary } from '../components/Booking/BookingSummary'
 import { BankTransferInfo } from '../components/Booking/BankTransferInfo'
@@ -31,8 +32,11 @@ export function BookingDetailPage() {
   const { data: studio } = useStudio(booking?.studioId)
   const { data: scenes } = useScenes(booking?.studioId)
   const { data: bankAccounts } = useActiveBankAccounts()
+  const { data: bookingEquipment } = useBookingEquipment(bookingIdNum)
   const cancel = useCancelBooking()
+  const submitProof = useSubmitPaymentProof()
   const [cancelError, setCancelError] = useState<string | null>(null)
+  const [paymentMessage, setPaymentMessage] = useState<string | null>(null)
 
   if (isLoading) return <div className="py-16 text-center"><Spinner /></div>
   if (!booking || !studio) return <p className="py-16 text-center text-ink-2">找不到此預約。</p>
@@ -53,10 +57,14 @@ export function BookingDetailPage() {
 
   const sceneNames =
     scenes?.items.filter((s) => booking.sceneIds.includes(s.id)).map((s) => s.name) ?? []
+  const equipmentNames = bookingEquipment?.map((item) => item.name) ?? []
+  const equipmentTotal = bookingEquipment?.reduce((sum, item) => sum + item.subtotal, 0) ?? 0
 
   const bank = bankAccounts?.find((b) => b.isDefault) ?? bankAccounts?.[0]
   const showBankInfo = isPendingPayment(booking)
   const canCancel = booking.status === 'pending' || booking.status === 'confirmed'
+  const paymentLabel = booking.depositAmount >= booking.totalPrice ? '應付全額' : '訂金'
+  const paymentProof = paymentProofFromMetadata(booking.metadata)
 
   async function onCancel() {
     if (!bookingIdNum) return
@@ -67,6 +75,32 @@ export function BookingDetailPage() {
       nav('/my-bookings', { replace: true })
     } catch (e) {
       setCancelError(e instanceof ApiError ? e.message : '取消失敗，請稍後再試')
+    }
+  }
+
+  async function onSubmitPaymentProof(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    const bankLast5 = String(form.get('bankLast5') ?? '').trim()
+    if (!/^\d{5}$/.test(bankLast5)) {
+      setPaymentMessage('請輸入匯款帳號後五碼')
+      return
+    }
+    try {
+      setPaymentMessage(null)
+      if (!booking) throw new Error('找不到此預約')
+      await submitProof.mutateAsync({
+        booking,
+        proof: {
+          bankLast5,
+          payerName: String(form.get('payerName') ?? '').trim() || undefined,
+          paidAt: String(form.get('paidAt') ?? '').trim() || undefined,
+          paymentNote: String(form.get('paymentNote') ?? '').trim() || undefined,
+        },
+      })
+      setPaymentMessage('匯款資訊已送出')
+    } catch (e) {
+      setPaymentMessage(e instanceof ApiError ? e.message : '匯款資訊送出失敗，請稍後再試')
     }
   }
 
@@ -107,8 +141,64 @@ export function BookingDetailPage() {
             <BankTransferInfo
               bankAccount={bank}
               amount={booking.depositAmount}
+              amountLabel={paymentLabel}
               bookingNumber={booking.bookingNumber}
             />
+          )}
+
+          {showBankInfo && (
+            <form onSubmit={onSubmitPaymentProof} className="rounded-xl border border-line bg-surface p-6">
+              <h3 className="font-serif text-lg text-ink">回報匯款資訊</h3>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm">
+                  <span className="text-ink-2">帳號後五碼</span>
+                  <input
+                    name="bankLast5"
+                    inputMode="numeric"
+                    pattern="\d{5}"
+                    maxLength={5}
+                    required
+                    defaultValue={paymentProof.bankLast5 ?? ''}
+                    className="mt-1 h-11 w-full rounded-lg border border-line bg-sunken px-3 text-ink outline-none focus:border-brand"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="text-ink-2">匯款人姓名</span>
+                  <input
+                    name="payerName"
+                    defaultValue={paymentProof.payerName ?? ''}
+                    className="mt-1 h-11 w-full rounded-lg border border-line bg-sunken px-3 text-ink outline-none focus:border-brand"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="text-ink-2">匯款時間</span>
+                  <input
+                    name="paidAt"
+                    type="datetime-local"
+                    defaultValue={paymentProof.paidAt?.slice(0, 16) ?? ''}
+                    className="mt-1 h-11 w-full rounded-lg border border-line bg-sunken px-3 text-ink outline-none focus:border-brand"
+                  />
+                </label>
+                <label className="block text-sm sm:col-span-2">
+                  <span className="text-ink-2">備註</span>
+                  <textarea
+                    name="paymentNote"
+                    defaultValue={paymentProof.paymentNote ?? ''}
+                    className="mt-1 min-h-24 w-full resize-none rounded-lg border border-line bg-sunken px-3 py-2 text-ink outline-none focus:border-brand"
+                  />
+                </label>
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <p className="text-sm text-ink-2">{paymentMessage}</p>
+                <button
+                  type="submit"
+                  disabled={submitProof.isPending}
+                  className="inline-flex h-10 items-center rounded-lg bg-brand px-5 text-sm font-medium text-brand-on hover:bg-brand-hover disabled:opacity-50"
+                >
+                  {submitProof.isPending ? '送出中…' : '送出匯款資訊'}
+                </button>
+              </div>
+            </form>
           )}
 
           {/* 客戶備註 */}
@@ -143,7 +233,7 @@ export function BookingDetailPage() {
               <div>
                 <p className="font-serif text-lg text-ink">取消預約</p>
                 <p className="mt-1 text-sm text-ink-2">
-                  取消後將無法還原；訂金退還規則請參閱使用條款。
+                  取消後將無法還原；7 天前全額退款，7 天內退 50%，24 小時內不予退款。
                 </p>
               </div>
               <button
@@ -168,7 +258,9 @@ export function BookingDetailPage() {
             sceneNames={sceneNames}
             bookingNumber={booking.bookingNumber}
             extraRows={[
-              { label: '訂金', value: `NT$ ${booking.depositAmount.toLocaleString()}` },
+              ...(equipmentNames.length > 0 ? [{ label: '器材', value: equipmentNames.join('、') }] : []),
+              ...(equipmentTotal > 0 ? [{ label: '器材租借', value: `NT$ ${equipmentTotal.toLocaleString()}` }] : []),
+              { label: paymentLabel, value: `NT$ ${booking.depositAmount.toLocaleString()}` },
             ]}
           />
         </aside>
@@ -184,4 +276,9 @@ function Row({ label, value }: { label: string; value: string }) {
       <dd className="mt-0.5 text-ink">{value}</dd>
     </div>
   )
+}
+
+function paymentProofFromMetadata(metadata: Record<string, unknown>): BookingPaymentProof {
+  const value = metadata.paymentProof
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as BookingPaymentProof : {}
 }

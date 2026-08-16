@@ -8,9 +8,10 @@ interface Props {
   scenes: Scene[]
   value: ID[]
   onChange: (ids: ID[]) => void
+  priceBySceneId?: Map<ID, number>
 }
 
-export function SceneMultiSelect({ scenes, value, onChange }: Props) {
+export function SceneMultiSelect({ scenes, value, onChange, priceBySceneId }: Props) {
   if (scenes.length === 0) return null
   const toggle = (id: ID) =>
     onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id])
@@ -30,7 +31,10 @@ export function SceneMultiSelect({ scenes, value, onChange }: Props) {
                 : 'bg-surface text-ink-2 border-line hover:border-line-strong',
             )}
           >
-            {s.name}
+            <span>{s.name}</span>
+            {priceBySceneId?.has(s.id) && (
+              <span className="ml-2 text-xs opacity-75">NT$ {priceBySceneId.get(s.id)?.toLocaleString()}/hr</span>
+            )}
           </button>
         )
       })}

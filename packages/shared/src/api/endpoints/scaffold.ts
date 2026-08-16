@@ -11,8 +11,10 @@ import type {
   PricingPlan,
   Scene,
   SceneImage,
+  ScenePrice,
   Studio,
   StudioImage,
+  StudioPrice,
   TimeSlot,
 } from '../../types'
 
@@ -98,6 +100,31 @@ export interface RawPricingPlan {
   is_active?: boolean
 }
 
+export interface RawScenePrice {
+  id: ID
+  scene_id: ID
+  hourly_price: number | string
+  effective_from?: string
+  effective_to?: string
+  is_active?: boolean
+  metadata?: unknown
+  created_at?: string
+  updated_at?: string
+}
+
+export interface RawStudioPrice {
+  id: ID
+  studio_id: ID
+  price_type?: StudioPrice['priceType']
+  hourly_price: number | string
+  effective_from?: string
+  effective_to?: string
+  is_active?: boolean
+  metadata?: unknown
+  created_at?: string
+  updated_at?: string
+}
+
 export interface RawTimeSlot {
   id: ID
   studio_id: ID
@@ -105,6 +132,7 @@ export interface RawTimeSlot {
   start_minute: number
   end_minute: number
   status: TimeSlot['status']
+  booking_id?: ID | null
   hourly_price?: number
 }
 
@@ -135,9 +163,20 @@ export interface RawBooking {
   cancelled_at?: string
   cancellation_reason?: string
   source?: Booking['source']
+  booking_mode?: Booking['bookingMode']
   metadata?: unknown
   created_at?: string
   updated_at?: string
+}
+
+export interface RawBookingSceneTimeSlot {
+  id: ID
+  booking_id: ID
+  scene_id: ID
+  time_slot_id: ID
+  status: 'active' | 'cancelled'
+  created_at?: string
+  cancelled_at?: string
 }
 
 export interface RawBankAccount {
@@ -277,6 +316,35 @@ export function toPricingPlan(raw: RawPricingPlan): PricingPlan {
   }
 }
 
+export function toScenePrice(raw: RawScenePrice): ScenePrice {
+  return {
+    id: raw.id,
+    sceneId: raw.scene_id,
+    hourlyPrice: Number(raw.hourly_price ?? 0),
+    effectiveFrom: raw.effective_from,
+    effectiveTo: raw.effective_to,
+    isActive: raw.is_active ?? true,
+    metadata: objectValue(raw.metadata),
+    createdAt: raw.created_at ?? '',
+    updatedAt: raw.updated_at ?? '',
+  }
+}
+
+export function toStudioPrice(raw: RawStudioPrice): StudioPrice {
+  return {
+    id: raw.id,
+    studioId: raw.studio_id,
+    priceType: raw.price_type ?? 'buyout',
+    hourlyPrice: Number(raw.hourly_price ?? 0),
+    effectiveFrom: raw.effective_from,
+    effectiveTo: raw.effective_to,
+    isActive: raw.is_active ?? true,
+    metadata: objectValue(raw.metadata),
+    createdAt: raw.created_at ?? '',
+    updatedAt: raw.updated_at ?? '',
+  }
+}
+
 export function toTimeSlot(raw: RawTimeSlot): TimeSlot {
   return {
     id: raw.id,
@@ -285,6 +353,7 @@ export function toTimeSlot(raw: RawTimeSlot): TimeSlot {
     startMinute: raw.start_minute,
     endMinute: raw.end_minute,
     status: raw.status,
+    bookingId: raw.booking_id,
     hourlyPrice: raw.hourly_price == null ? undefined : Number(raw.hourly_price),
   }
 }
@@ -317,6 +386,8 @@ export function toBooking(raw: RawBooking): Booking {
     cancelledAt: raw.cancelled_at,
     cancellationReason: raw.cancellation_reason,
     source: raw.source ?? 'web',
+    bookingMode: raw.booking_mode ?? 'scenes',
+    metadata: objectValue(raw.metadata),
     createdAt: raw.created_at ?? '',
     updatedAt: raw.updated_at ?? '',
   }
@@ -347,6 +418,7 @@ export function toBookingCreate(input: CreateBookingInput, totals: { subtotal: n
     payment_status: 'unpaid',
     customer_note: input.customerNote,
     source: 'web',
+    booking_mode: input.bookingMode ?? 'scenes',
     metadata: '{}',
   }
 }
@@ -456,6 +528,19 @@ function numberArray(value: unknown, fallback: number[] = []): number[] {
     }
   }
   return fallback
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {}
+    } catch {
+      return {}
+    }
+  }
+  return {}
 }
 
 function buildBookingNumber(): string {

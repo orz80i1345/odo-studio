@@ -33,10 +33,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient()
   const [user, setUser] = useState<CustomerAccount | null>(() => authStorage.getUser())
 
-  // 初次載入若有 token 但沒 user，去 /me 撈一次
+  // 初次載入若有 token，跟 API 校正目前登入者，避免 localStorage 留著舊資料。
   useEffect(() => {
     const token = authStorage.getToken()
-    if (token && !user) {
+    if (token) {
       customerAuthApi.getCurrentCustomerProfile(api).then(
         (u) => {
           authStorage.setUser(u)
@@ -51,7 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (input: LoginInput) => {
     const session = await customerAuthApi.customerLogin(api, input)
     authStorage.setToken(session.token)
-    const currentUser = await customerAuthApi.getCurrentCustomerProfile(api).catch(() => session.customer)
+    const currentUser = await customerAuthApi.getCustomerProfileByEmail(api, input.email)
+      .then((profile) => profile ?? session.customer)
+      .catch(() => session.customer)
     authStorage.setUser(currentUser)
     setUser(currentUser)
     qc.setQueryData(queryKeys.customerAuth.me, currentUser)

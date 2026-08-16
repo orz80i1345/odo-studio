@@ -7,7 +7,7 @@
 - 用途：展示空間、佈景、價格、FAQ，並提供使用者線上預約與查看自己的預約狀態。
 - 主要 app：`apps/booking-web`
 - 共用套件：`packages/shared`
-- 專案說明：`project-overview/`
+- 專案說明：`docs/`
 
 ## 管理後台
 
@@ -24,3 +24,11 @@ npm run dev
 npm run typecheck
 npm run build
 ```
+
+## 重要文件
+
+- `docs/ARCHITECTURE.md`
+- `docs/API_CONTRACT.md`
+- `docs/DATA_RULES.md`
+- `docs/ENVIRONMENT.md`
+- `docs/KNOWN_LIMITATIONS.md`

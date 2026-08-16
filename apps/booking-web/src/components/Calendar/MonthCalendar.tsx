@@ -94,7 +94,7 @@ export function MonthCalendar({ studioId, yearMonth, onChangeMonth, selectedDate
           const selected = selectedDate === iso
 
           const disabled =
-            !inMonth || (data && (!day || day.isClosed || day.availableCount === 0))
+            isLoading || !data || !inMonth || !day || day.isClosed || day.availableCount === 0
 
           return (
             <DayCell
@@ -118,7 +118,7 @@ export function MonthCalendar({ studioId, yearMonth, onChangeMonth, selectedDate
       <div className="flex flex-wrap items-center gap-4 border-t border-line px-5 py-3 text-xs text-ink-3">
         <Legend swatch="bg-brand-subtle" label="可預約" />
         <Legend swatch="bg-neutral-subtle" label="已滿" />
-        <Legend swatch="bg-sunken" label="公休" />
+        <Legend swatch="bg-black" label="公休" />
         <span className="ml-auto">週末以較深底色標示；今日以邊框標示。</span>
       </div>
     </div>
@@ -151,7 +151,9 @@ function DayCell({
   dayNumber, inMonth, isToday, isWeekend, selected, disabled, loading, day, onClick,
 }: DayCellProps) {
   const base = 'relative border-b border-r border-line px-2 py-2 min-h-[80px] text-left transition-colors'
-  const state = disabled
+  const state = day?.isClosed
+    ? 'bg-black text-white/70 cursor-not-allowed'
+    : disabled
     ? 'bg-neutral-subtle text-ink-3 cursor-not-allowed'
     : selected
       ? 'bg-brand-subtle text-brand-subtle-ink ring-2 ring-inset ring-brand'
@@ -176,7 +178,7 @@ function DayCell({
           <span className="text-[10px] text-ink-3">…</span>
         ) : day ? (
           day.isClosed ? (
-            <span className="text-[10px] text-ink-3">公休</span>
+            <span className="text-[10px] text-white/70">公休</span>
           ) : (
             <span className="text-[10px] text-ink-3">{day.availableCount}/{day.totalCount}</span>
           )

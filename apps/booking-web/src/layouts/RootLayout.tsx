@@ -22,13 +22,13 @@ export function RootLayout() {
     <div className="flex min-h-screen flex-col bg-canvas">
       {/* header */}
       <header className="border-b border-line bg-surface/85 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <div className="relative flex h-16 w-full items-center justify-between px-6 md:px-10">
           <Link to="/" className="flex items-baseline gap-2">
             <span className="font-serif text-xl text-ink">河日</span>
             <span className="text-xs uppercase tracking-[0.2em] text-ink-3">Ode Studio</span>
           </Link>
 
-          <nav className="hidden items-center gap-7 text-sm md:flex">
+          <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-7 text-sm md:flex">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}

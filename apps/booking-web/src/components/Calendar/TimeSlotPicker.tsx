@@ -5,23 +5,89 @@
  * 中間如果有 booked 就阻擋選取。
  */
 import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Spinner, cn, type ID, type TimeSlot } from '@studio/shared'
 import { useDaySlots } from '../../hooks/useAvailability'
 import { formatMinuteRange } from '../../utils/time'
+import { api } from '../../lib'
+import type { Scene, ScenePrice } from '@studio/shared'
 
 interface Props {
   studioId: ID
   date: string
   /** 攝影棚要求的最小預約分鐘 */
   minBookingMinutes: number
-  onConfirm: (payload: { startAt: string; endAt: string }) => void
+  scenes: Scene[]
+  scenePrices: ScenePrice[]
+  buyoutHourlyPrice?: number
+  fallbackHourlyPrice: number
+  selectedSceneIds: ID[]
+  onChangeSelectedSceneIds: (sceneIds: ID[]) => void
+  forceBuyout: boolean
+  onChangeForceBuyout: (value: boolean) => void
+  onConfirm: (payload: { startAt: string; endAt: string; sceneIds: ID[]; bookingMode: 'scenes' | 'buyout' }) => void
 }
 
-export function TimeSlotPicker({ studioId, date, minBookingMinutes, onConfirm }: Props) {
+interface RawBookingSceneTimeSlot {
+  id: ID
+  booking_id: ID
+  scene_id: ID
+  time_slot_id: ID
+}
+
+export function TimeSlotPicker({
+  studioId,
+  date,
+  minBookingMinutes,
+  scenes,
+  scenePrices,
+  buyoutHourlyPrice,
+  fallbackHourlyPrice,
+  selectedSceneIds,
+  onChangeSelectedSceneIds,
+  forceBuyout,
+  onChangeForceBuyout,
+  onConfirm,
+}: Props) {
   const { data, isLoading, isError } = useDaySlots(studioId, date)
   const [range, setRange] = useState<{ startIdx: number; endIdx: number } | null>(null)
 
   const slots = data?.slots ?? []
+  const priceBySceneId = useMemo(
+    () => new Map(scenePrices.map((price) => [price.sceneId, price.hourlyPrice])),
+    [scenePrices],
+  )
+  const occupiedQuery = useQuery({
+    queryKey: ['booking-scene-time-slots', studioId, date, slots.map((slot) => slot.id).join(',')],
+    queryFn: async () => {
+      const slotIds = new Set(slots.map((slot) => Number(slot.id)))
+      const items: RawBookingSceneTimeSlot[] = []
+      for (let page = 1; ; page += 1) {
+        const res = await api.get<{ data: RawBookingSceneTimeSlot[]; pagination?: { total?: number } }>('/public/booking_scene_time_slots', {
+          page,
+          pageSize: 100,
+        })
+        const rows = res.data ?? []
+        items.push(...rows.filter((item) => slotIds.has(Number(item.time_slot_id))))
+        const total = res.pagination?.total ?? rows.length
+        if (page * 100 >= total || rows.length === 0) break
+      }
+      return items
+    },
+    enabled: slots.length > 0,
+  })
+  const occupiedSceneIdsBySlotId = useMemo(() => {
+    const map = new Map<ID, Set<ID>>()
+    for (const item of occupiedQuery.data ?? []) {
+      const set = map.get(item.time_slot_id) ?? new Set<ID>()
+      set.add(item.scene_id)
+      map.set(item.time_slot_id, set)
+    }
+    return map
+  }, [occupiedQuery.data])
+
+  const bookingMode = forceBuyout || selectedSceneIds.length >= 2 ? 'buyout' : 'scenes'
+  const effectiveSceneIds = bookingMode === 'buyout' ? scenes.map((scene) => scene.id) : selectedSceneIds
 
   const summary = useMemo(() => {
     if (!range || slots.length === 0) return null
@@ -34,19 +100,43 @@ export function TimeSlotPicker({ studioId, date, minBookingMinutes, onConfirm }:
       const dt = new Date(y, mo - 1, d, Math.floor(m / 60), m % 60)
       return dt.toISOString()
     }
+    const selectedSlots = slots.slice(range.startIdx, range.endIdx + 1)
+    const hourlyPrice = bookingMode === 'buyout'
+      ? buyoutHourlyPrice ?? fallbackHourlyPrice
+      : selectedSceneIds.reduce((sum, sceneId) => sum + (priceBySceneId.get(sceneId) ?? fallbackHourlyPrice), 0)
+    const unavailableSceneIds = effectiveSceneIds.filter((sceneId) =>
+      selectedSlots.some((slot) => occupiedSceneIdsBySlotId.get(slot.id)?.has(sceneId)))
     return {
       startAt: iso(first.startMinute),
       endAt: iso(last.endMinute),
       minutes,
-      totalPrice: slots.slice(range.startIdx, range.endIdx + 1)
-        .reduce((sum, s) => sum + (s.hourlyPrice ?? 0), 0),
+      hourlyPrice,
+      unavailableSceneIds,
+      totalPrice: Math.round(hourlyPrice * (minutes / 60)),
     }
-  }, [range, slots, date])
+  }, [bookingMode, buyoutHourlyPrice, date, effectiveSceneIds, fallbackHourlyPrice, occupiedSceneIdsBySlotId, priceBySceneId, range, selectedSceneIds, slots])
+
+  const sceneAvailability = useMemo(() => {
+    const selectedSlots = range ? slots.slice(range.startIdx, range.endIdx + 1) : []
+    return scenes.map((scene) => {
+      const unavailable = selectedSlots.length > 0 && selectedSlots.some((slot) => occupiedSceneIdsBySlotId.get(slot.id)?.has(scene.id))
+      return { scene, unavailable }
+    })
+  }, [occupiedSceneIdsBySlotId, range, scenes, slots])
+
+  function toggleScene(sceneId: ID) {
+    onChangeForceBuyout(false)
+    onChangeSelectedSceneIds(selectedSceneIds.includes(sceneId)
+      ? selectedSceneIds.filter((id) => id !== sceneId)
+      : [...selectedSceneIds, sceneId])
+  }
 
   function toggle(idx: number) {
     const s = slots[idx]
     if (!s || s.status !== 'available') return
     if (!range) return setRange({ startIdx: idx, endIdx: idx })
+    // 已經選出一段區間後，再點任何可用時段都視為重新選起點。
+    if (range.endIdx > range.startIdx) return setRange({ startIdx: idx, endIdx: idx })
     // 已有起點
     if (idx < range.startIdx) return setRange({ startIdx: idx, endIdx: idx })
     // 檢查中間全部是 available
@@ -55,7 +145,7 @@ export function TimeSlotPicker({ studioId, date, minBookingMinutes, onConfirm }:
     setRange({ startIdx: range.startIdx, endIdx: idx })
   }
 
-  if (isLoading) {
+  if (isLoading || occupiedQuery.isLoading) {
     return (
       <div className="rounded-xl border border-line bg-surface p-8 text-center">
         <Spinner /> <span className="ml-2 text-sm text-ink-2">載入時段中…</span>
@@ -71,13 +161,17 @@ export function TimeSlotPicker({ studioId, date, minBookingMinutes, onConfirm }:
   }
   if (data.isClosed) {
     return (
-      <div className="rounded-xl border border-line bg-sunken p-8 text-center text-sm text-ink-2">
+      <div className="rounded-xl border border-line bg-black p-8 text-center text-sm text-white/70">
         當日公休，請選擇其他日期。
       </div>
     )
   }
 
-  const meetsMin = summary && summary.minutes >= minBookingMinutes
+  const buyoutUnavailable = effectiveSceneIds.length > 0 && summary
+    ? summary.unavailableSceneIds.length > 0
+    : false
+  const hasSelection = effectiveSceneIds.length > 0
+  const meetsMin = summary && summary.minutes >= minBookingMinutes && hasSelection && !buyoutUnavailable
 
   return (
     <div className="space-y-4 rounded-xl border border-line bg-surface p-5">
@@ -100,6 +194,39 @@ export function TimeSlotPicker({ studioId, date, minBookingMinutes, onConfirm }:
         ))}
       </ul>
 
+      <section className="space-y-3 rounded-lg border border-line bg-sunken p-4">
+        <h4 className="font-serif text-base text-ink">選擇佈景</h4>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {sceneAvailability.map(({ scene, unavailable }) => {
+            const selected = effectiveSceneIds.includes(scene.id)
+            const disabled = unavailable || forceBuyout
+            return (
+              <button
+                key={scene.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => toggleScene(scene.id)}
+                className={cn(
+                  'rounded-lg border px-3 py-2 text-left text-sm transition-colors',
+                  selected && !unavailable && 'border-brand bg-brand-subtle text-brand-subtle-ink',
+                  !selected && !unavailable && 'border-line bg-surface text-ink hover:border-line-strong',
+                  unavailable && 'cursor-not-allowed border-line bg-neutral-subtle text-ink-3 line-through',
+                  disabled && !unavailable && 'cursor-not-allowed opacity-70',
+                )}
+              >
+                <span className="block font-medium">{scene.name}</span>
+                <span className="mt-0.5 block text-xs opacity-75">
+                  {unavailable ? '此時段已被預約' : `NT$ ${(priceBySceneId.get(scene.id) ?? fallbackHourlyPrice).toLocaleString()}/hr`}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+        {selectedSceneIds.length >= 2 && !forceBuyout && (
+          <p className="text-xs text-ink-3">選擇 2 個以上佈景會自動以包場價格計算，並保留所有佈景。</p>
+        )}
+      </section>
+
       {/* 摘要 + 確認 */}
       <div className="flex flex-col gap-3 rounded-lg bg-sunken px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm">
@@ -110,8 +237,12 @@ export function TimeSlotPicker({ studioId, date, minBookingMinutes, onConfirm }:
                 <span className="ml-2 text-ink-3">（{summary.minutes / 60} 小時）</span>
               </div>
               <div className="mt-0.5 text-ink-2">
-                合計 <span className="font-medium text-ink">NT$ {summary.totalPrice.toLocaleString()}</span>
+                {bookingMode === 'buyout' ? '包場' : '佈景預約'} · NT$ {summary.hourlyPrice.toLocaleString()}/hr
+                <span className="ml-2 font-medium text-ink">合計 NT$ {summary.totalPrice.toLocaleString()}</span>
               </div>
+              {buyoutUnavailable && (
+                <div className="mt-0.5 text-danger">所選區間已有佈景被預約，無法包場。</div>
+              )}
             </>
           ) : (
             <span className="text-ink-3">尚未選擇時段</span>
@@ -120,7 +251,7 @@ export function TimeSlotPicker({ studioId, date, minBookingMinutes, onConfirm }:
         <button
           type="button"
           disabled={!meetsMin}
-          onClick={() => summary && onConfirm({ startAt: summary.startAt, endAt: summary.endAt })}
+          onClick={() => summary && onConfirm({ startAt: summary.startAt, endAt: summary.endAt, sceneIds: effectiveSceneIds, bookingMode })}
           className={cn(
             'inline-flex h-10 items-center justify-center rounded-lg px-5 text-sm font-medium transition-colors',
             meetsMin

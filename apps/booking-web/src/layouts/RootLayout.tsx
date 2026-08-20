@@ -4,6 +4,7 @@
  */
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { LogIn, LogOut, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { cn } from '@studio/shared'
 import { useAuth } from '../auth/AuthContext'
 
@@ -17,6 +18,16 @@ const navItems = [
 export function RootLayout() {
   const { user, isAuthenticated, logout } = useAuth()
   const location = useLocation()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname, location.search])
+
+  function signOut() {
+    logout()
+    setMenuOpen(false)
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
@@ -42,19 +53,31 @@ export function RootLayout() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label={menuOpen ? '關閉選單' : '開啟選單'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((value) => !value)}
+            className="inline-flex h-11 w-11 flex-col items-center justify-center gap-1.5 rounded-md border border-line bg-canvas/45 transition-colors duration-500 hover:bg-surface md:hidden"
+          >
+            <span className={cn('h-0.5 w-5 rounded-full bg-ink transition-transform duration-300', menuOpen && 'translate-y-2 rotate-45')} />
+            <span className={cn('h-0.5 w-5 rounded-full bg-ink transition-opacity duration-300', menuOpen && 'opacity-0')} />
+            <span className={cn('h-0.5 w-5 rounded-full bg-ink transition-transform duration-300', menuOpen && '-translate-y-2 -rotate-45')} />
+          </button>
+
+          <div className="hidden items-center gap-2 md:flex">
             {isAuthenticated ? (
               <>
                 <Link
                   to="/account"
-                  className="hidden items-center gap-1.5 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-ink-2 transition-colors duration-500 hover:text-ink sm:inline-flex"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-ink-2 transition-colors duration-500 hover:text-ink"
                 >
                   <User className="size-4" />
                   {user?.displayName ?? '我的'}
                 </Link>
                 <button
                   type="button"
-                  onClick={logout}
+                  onClick={signOut}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-ink-3 transition-colors duration-500 hover:text-ink-2"
                 >
                   <LogOut className="size-4" />
@@ -72,6 +95,56 @@ export function RootLayout() {
             )}
           </div>
         </div>
+
+        {menuOpen && (
+          <div className="border-t border-line bg-canvas/60 px-5 py-7 backdrop-blur-md md:hidden">
+            <nav className="grid gap-1">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    cn(
+                      'border-b border-line py-4 font-serif text-3xl leading-none text-ink-2 transition-colors duration-500 hover:text-ink',
+                      isActive && 'text-ink',
+                    )
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+            <div className="mt-7 border-t border-line pt-5">
+              {isAuthenticated ? (
+                <div className="grid gap-3">
+                  <Link
+                    to="/account"
+                    className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-ink-2"
+                  >
+                    <User className="size-4" />
+                    {user?.displayName ?? '我的帳號'}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={signOut}
+                    className="inline-flex items-center gap-2 text-left text-xs uppercase tracking-[0.18em] text-ink-3"
+                  >
+                    <LogOut className="size-4" />
+                    登出
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`}
+                  className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-ink-2"
+                >
+                  <LogIn className="size-4" />
+                  登入
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* content */}

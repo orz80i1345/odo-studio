@@ -28,20 +28,20 @@ const faqs: { q: string; a: string }[] = [
 
 export function FAQPage() {
   return (
-    <div className="space-y-10">
+    <div className="mx-auto max-w-3xl space-y-12">
       <PageHeader
         eyebrow="Help"
         title="常見問題"
         subtitle="沒有找到答案？可以到「聯絡資訊」頁直接寫信給我們。"
       />
-      <div className="divide-y divide-line rounded-xl border border-line bg-surface">
+      <div className="divide-y divide-line border-y border-line">
         {faqs.map((f) => (
-          <details key={f.q} className="group p-6">
-            <summary className="cursor-pointer list-none font-serif text-lg text-ink flex items-center justify-between">
+          <details key={f.q} className="group py-7">
+            <summary className="flex cursor-pointer list-none items-center justify-between font-serif text-2xl leading-tight text-ink">
               <span>{f.q}</span>
-              <span className="ml-4 text-ink-3 transition-transform group-open:rotate-45">＋</span>
+              <span className="ml-6 text-lg text-ink-3 transition-transform group-open:rotate-45">＋</span>
             </summary>
-            <p className="mt-3 whitespace-pre-line text-ink-2">{f.a}</p>
+            <p className="mt-5 max-w-xl whitespace-pre-line text-sm leading-8 text-ink-2">{f.a}</p>
           </details>
         ))}
       </div>

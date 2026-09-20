@@ -7,6 +7,7 @@ import type { ApiClient } from '../client'
 import type {
   CustomerAccount,
   CustomerAuthSession,
+  ID,
   LoginInput,
   RegisterInput,
   UpdateCustomerProfileInput,
@@ -63,7 +64,8 @@ export async function getCustomerMe(api: ApiClient) {
   const me = unwrapItem(await api.get<UserResponse | ScaffoldItemResponse<UserResponse>>('/users/me'))
   const email = me.email ?? me.account ?? ''
   return {
-    id: me.id ?? 0,
+    id: 0,
+    userId: me.id ?? 0,
     email,
     phone: me.phone,
     displayName: me.display_name ?? me.displayName ?? email,
@@ -77,7 +79,7 @@ export async function getCustomerMe(api: ApiClient) {
 
 export async function getCurrentCustomerProfile(api: ApiClient) {
   const me = await getCustomerMe(api)
-  const profile = await findCustomerProfileByEmail(api, me.email)
+  const profile = await findCustomerProfileByUserId(api, me.userId)
   return profile ?? me
 }
 
@@ -86,7 +88,8 @@ export async function getCustomerProfileByEmail(api: ApiClient, email: string) {
 }
 
 export async function ensureCustomerProfile(api: ApiClient, input: RegisterInput) {
-  const existing = await findCustomerProfileByEmail(api, input.email)
+  const me = await getCustomerMe(api)
+  const existing = await findCustomerProfileByUserId(api, me.userId)
   if (existing) {
     return updateCustomerProfile(api, existing, {
       displayName: input.displayName,
@@ -96,7 +99,7 @@ export async function ensureCustomerProfile(api: ApiClient, input: RegisterInput
     })
   }
 
-  return createCustomerProfile(api, input.email, {
+  return createCustomerProfile(api, me.email || input.email, {
     displayName: input.displayName,
     phone: input.phone,
     marketingOptIn: input.marketingOptIn,
@@ -109,10 +112,10 @@ export async function updateCustomerProfile(
   current: CustomerAccount,
   input: UpdateCustomerProfileInput,
 ) {
-  const id = current.id || (await findCustomerProfileByEmail(api, current.email))?.id
+  const id = current.id || (await findCustomerProfileByUserId(api, current.userId))?.id
   if (!id) return createCustomerProfile(api, current.email, input)
 
-  const raw = unwrapItem(await api.patch<RawCustomerAccount | ScaffoldItemResponse<RawCustomerAccount>>(`/public/customer_accounts/${id}`, {
+  const raw = unwrapItem(await api.patch<RawCustomerAccount | ScaffoldItemResponse<RawCustomerAccount>>(`/customer_accounts/${id}`, {
     display_name: input.displayName,
     phone: input.phone,
     marketing_opt_in: input.marketingOptIn ?? false,
@@ -128,16 +131,25 @@ export function customerLogout(api: ApiClient) {
 
 async function findCustomerProfileByEmail(api: ApiClient, email: string) {
   if (!email) return null
-  const res = await api.get<ScaffoldListResponse<RawCustomerAccount>>('/public/customer_accounts', {
+  const res = await api.get<ScaffoldListResponse<RawCustomerAccount>>('/customer_accounts', {
     filter: [filter('email', 'eq', email)],
     pageSize: 1,
   })
   return toScaffoldList(res, toCustomer).items.find((customer) => customer.email === email) ?? null
 }
 
+async function findCustomerProfileByUserId(api: ApiClient, userId: ID | undefined) {
+  if (!userId) return null
+  const res = await api.get<ScaffoldListResponse<RawCustomerAccount>>('/customer_accounts', {
+    filter: [filter('user_id', 'eq', userId)],
+    pageSize: 1,
+  })
+  return toScaffoldList(res, toCustomer).items[0] ?? null
+}
+
 async function createCustomerProfile(api: ApiClient, email: string, input: UpdateCustomerProfileInput) {
   if (!email) throw new Error('找不到可建立的會員 email')
-  const raw = unwrapItem(await api.post<RawCustomerAccount | ScaffoldItemResponse<RawCustomerAccount>>('/public/customer_accounts', {
+  const raw = unwrapItem(await api.post<RawCustomerAccount | ScaffoldItemResponse<RawCustomerAccount>>('/customer_accounts', {
     email,
     phone: input.phone,
     display_name: input.displayName,

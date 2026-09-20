@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (input: LoginInput) => {
     const session = await customerAuthApi.customerLogin(api, input)
     authStorage.setToken(session.token)
-    const currentUser = await customerAuthApi.getCustomerProfileByEmail(api, input.email)
+    const currentUser = await customerAuthApi.getCurrentCustomerProfile(api)
       .then((profile) => profile ?? session.customer)
       .catch(() => session.customer)
     authStorage.setUser(currentUser)

@@ -1,5 +1,5 @@
 /**
- * SceneMultiSelect — 確認頁的佈景多選。走 chips 樣式。
+ * SceneMultiSelect — 確認頁的空間多選。走 chips 樣式。
  */
 import type { ID, Scene } from '@studio/shared'
 import { cn } from '@studio/shared'

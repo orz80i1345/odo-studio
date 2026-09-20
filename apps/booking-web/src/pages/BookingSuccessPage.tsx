@@ -87,7 +87,7 @@ export function BookingSuccessPage() {
             >
               查看我的預約
             </Link>
-            <Link to="/studios" className="text-sm text-ink-2 hover:text-ink underline underline-offset-4">
+            <Link to="/spaces" className="text-sm text-ink-2 hover:text-ink underline underline-offset-4">
               再看看其他空間 →
             </Link>
           </div>

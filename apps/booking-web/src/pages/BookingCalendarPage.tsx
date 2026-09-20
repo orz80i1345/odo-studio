@@ -65,7 +65,7 @@ export function BookingCalendarPage() {
         title="選擇日期與時段"
         subtitle="先選一個日期，再選連續的時段區間；之後會帶你去填聯絡資料。"
         actions={
-          <Link to={`/studios/${studio.slug}`} className="border-b border-line-strong pb-1 text-xs uppercase tracking-[0.18em] text-ink-2 hover:text-ink">
+          <Link to="/spaces" className="border-b border-line-strong pb-1 text-xs uppercase tracking-[0.18em] text-ink-2 hover:text-ink">
             ← 回空間介紹
           </Link>
         }
@@ -108,8 +108,8 @@ export function BookingCalendarPage() {
           <div className="mt-7 space-y-px border-y border-line bg-line">
             <ModeCard
               active={bookingMode === 'scenes'}
-              title="佈景預約"
-              description="選擇單一佈景；同時段其他佈景仍可被預約。"
+              title="單一空間"
+              description="選擇單一空間；同時段其他空間仍可被預約。"
               onClick={() => {
                 setForceBuyout(false)
                 if (selectedSceneIds.length >= 2) setSelectedSceneIds([])
@@ -118,7 +118,7 @@ export function BookingCalendarPage() {
             <ModeCard
               active={bookingMode === 'buyout'}
               title="包場"
-              description={`保留所有佈景${buyoutPrice ? `，NT$ ${buyoutPrice.hourlyPrice.toLocaleString()}/hr` : ''}`}
+              description={`保留所有空間${buyoutPrice ? `，NT$ ${buyoutPrice.hourlyPrice.toLocaleString()}/hr` : ''}`}
               onClick={() => {
                 setForceBuyout(true)
                 setSelectedSceneIds(sceneIds)
@@ -127,7 +127,7 @@ export function BookingCalendarPage() {
           </div>
           {scenes && scenes.items.length > 0 && (
             <div className="mt-7 space-y-3 border-t border-line pt-7">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-ink-3">Scene Prices</p>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-ink-3">Space Prices</p>
               <dl className="space-y-3 text-sm">
                 {scenes.items.map((scene) => (
                   <div key={scene.id} className="flex items-baseline justify-between gap-4">
@@ -143,15 +143,15 @@ export function BookingCalendarPage() {
           <div className="mt-7 border-t border-line pt-5 text-sm text-ink-2">
             <div className="flex justify-between gap-4">
               <span>目前</span>
-              <span className="text-ink">{bookingMode === 'buyout' ? '包場' : '佈景預約'}</span>
+              <span className="text-ink">{bookingMode === 'buyout' ? '包場' : '單一空間'}</span>
             </div>
             <div className="mt-2 flex justify-between gap-4">
-              <span>已選佈景</span>
+              <span>已選空間</span>
               <span className="text-ink">{bookingMode === 'buyout' ? '全部' : `${selectedSceneIds.length} 個`}</span>
             </div>
           </div>
           <p className="mt-6 border-l border-brand pl-4 text-xs leading-6 text-ink-2">
-            選擇 2 個以上佈景會自動以包場價格計算。
+            選擇 2 個以上空間會自動以包場價格計算。
           </p>
         </aside>
       </div>

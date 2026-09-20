@@ -77,20 +77,20 @@ export async function handleMock(method: string, path: string, body?: unknown): 
   if (method === 'GET' && pathname === '/studios') {
     return { items: mockStudios, page: 1, pageSize: 20, total: mockStudios.length }
   }
-  if (method === 'GET' && pathname === '/public/studios') {
+  if (method === 'GET' && (pathname === '/studios' || pathname === '/public/studios')) {
     const slug = filterValue(filters, 'slug')
     const items = slug ? mockStudios.filter((s) => s.slug === slug) : mockStudios
     return scaffoldList(items.map(toRawStudio), 1, Number(query.pageSize || 50))
   }
   {
-    const p = m('/public/studios/:key')
+    const p = m('/studios/:key') ?? m('/public/studios/:key')
     if (method === 'GET' && p) {
       const found = mockStudios.find((s) => s.id === Number(p.key))
       if (!found) throw new HttpError(404, '找不到攝影棚')
       return { data: toRawStudio(found) }
     }
   }
-  if (method === 'GET' && pathname === '/public/studio_images') {
+  if (method === 'GET' && (pathname === '/studio_images' || pathname === '/public/studio_images')) {
     const ids = numberFilterValues(filters, 'studio_id')
     const images = mockStudios.flatMap((s) => s.images).filter((img) => ids.length === 0 || ids.includes(img.studioId))
     return scaffoldList(images.map(toRawStudioImage), 1, Number(query.pageSize || 200))
@@ -112,7 +112,7 @@ export async function handleMock(method: string, path: string, body?: unknown): 
       : mockScenes
     return { items, page: 1, pageSize: 50, total: items.length }
   }
-  if (method === 'GET' && pathname === '/public/scenes') {
+  if (method === 'GET' && (pathname === '/scenes' || pathname === '/public/scenes')) {
     const slug = filterValue(filters, 'slug')
     const studioId = Number(filterValue(filters, 'studio_id'))
     const items = mockScenes.filter((s) =>
@@ -122,14 +122,14 @@ export async function handleMock(method: string, path: string, body?: unknown): 
     return scaffoldList(items.map(toRawScene), 1, Number(query.pageSize || 100))
   }
   {
-    const p = m('/public/scenes/:key')
+    const p = m('/scenes/:key') ?? m('/public/scenes/:key')
     if (method === 'GET' && p) {
       const found = mockScenes.find((s) => s.id === Number(p.key))
       if (!found) throw new HttpError(404, '找不到佈景')
       return { data: toRawScene(found) }
     }
   }
-  if (method === 'GET' && pathname === '/public/scene_images') {
+  if (method === 'GET' && (pathname === '/scene_images' || pathname === '/public/scene_images')) {
     const ids = numberFilterValues(filters, 'scene_id')
     const images = mockScenes.flatMap((s) => s.images).filter((img) => ids.length === 0 || ids.includes(img.sceneId))
     return scaffoldList(images.map(toRawSceneImage), 1, Number(query.pageSize || 200))
@@ -226,19 +226,19 @@ export async function handleMock(method: string, path: string, body?: unknown): 
       updatedAt: now,
     }
     mockBookings.unshift(booking)
-    return pathname === '/public/bookings' ? { data: toRawBooking(booking) } : booking
+    return { data: toRawBooking(booking) }
   }
 
   if (method === 'GET' && pathname === '/my/bookings') {
     return { items: mockBookings, page: 1, pageSize: 20, total: mockBookings.length }
   }
-  if (method === 'GET' && pathname === '/public/bookings') {
+  if (method === 'GET' && (pathname === '/bookings' || pathname === '/public/bookings')) {
     const email = filterValue(filters, 'customer_email')
     const items = email ? mockBookings.filter((b) => b.customerEmail === email) : mockBookings
     return scaffoldList(items.map(toRawBooking), 1, Number(query.pageSize || 50))
   }
   {
-    const p = m('/public/bookings/:bid')
+    const p = m('/bookings/:bid') ?? m('/public/bookings/:bid')
     if (method === 'GET' && p) {
       const found = mockBookings.find((b) => b.id === Number(p.bid))
       if (!found) throw new HttpError(404, '找不到預約')
@@ -276,15 +276,6 @@ export async function handleMock(method: string, path: string, body?: unknown): 
       return updated
     }
   }
-  {
-    const p = m('/bookings/:bid')
-    if (method === 'GET' && p) {
-      const found = mockBookings.find((b) => b.id === Number(p.bid))
-      if (!found) throw new HttpError(404, '找不到預約')
-      return found
-    }
-  }
-
   throw new HttpError(404, `Mock 未實作：${method} ${pathname}`)
 }
 

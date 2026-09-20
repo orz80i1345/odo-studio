@@ -17,14 +17,12 @@
  *   /scenes/:slug    看佈景
  *   /bookings/:id    看訂單
  */
-import { createBrowserRouter } from 'react-router'
+import { Navigate, createBrowserRouter } from 'react-router'
 import { RootLayout } from '../layouts/RootLayout'
 import { AuthLayout } from '../layouts/AuthLayout'
 import { ProtectedRoute } from '../auth/ProtectedRoute'
 
 import { HomePage } from '../pages/HomePage'
-import { StudiosPage } from '../pages/StudiosPage'
-import { StudioDetailPage } from '../pages/StudioDetailPage'
 import { ScenesPage } from '../pages/ScenesPage'
 import { SceneDetailPage } from '../pages/SceneDetailPage'
 import { PricingPage } from '../pages/PricingPage'
@@ -57,9 +55,11 @@ export const router = createBrowserRouter([
     children: [
       // 公開
       { index: true,                        element: <HomePage /> },
-      { path: '/studios',                   element: <StudiosPage /> },
-      { path: '/studios/:studioSlug',       element: <StudioDetailPage /> },
-      { path: '/scenes',                    element: <ScenesPage /> },
+      { path: '/spaces',                    element: <ScenesPage /> },
+      { path: '/spaces/:sceneSlug',         element: <SceneDetailPage /> },
+      { path: '/studios',                   element: <Navigate to="/spaces" replace /> },
+      { path: '/studios/:studioSlug',       element: <Navigate to="/spaces" replace /> },
+      { path: '/scenes',                    element: <Navigate to="/spaces" replace /> },
       { path: '/scenes/:sceneSlug',         element: <SceneDetailPage /> },
       { path: '/pricing',                   element: <PricingPage /> },
       { path: '/faq',                       element: <FAQPage /> },

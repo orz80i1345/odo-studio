@@ -32,7 +32,7 @@ export function BookingSummary({ studio, startAt, endAt, totalPrice, sceneNames,
         <Row label="日期" value={dateStr} />
         <Row label="時段" value={`${formatMinute(s.getHours() * 60 + s.getMinutes())}–${formatMinute(e.getHours() * 60 + e.getMinutes())}（${hours} 小時）`} />
         {sceneNames && sceneNames.length > 0 && (
-          <Row label="佈景" value={sceneNames.join('、')} />
+          <Row label="空間" value={sceneNames.join('、')} />
         )}
         {extraRows?.map((r) => <Row key={r.label} label={r.label} value={r.value} />)}
         {typeof totalPrice === 'number' && (

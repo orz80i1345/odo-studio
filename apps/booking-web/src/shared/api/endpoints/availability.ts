@@ -53,10 +53,6 @@ export async function getMonthAvailability(api: ApiClient, studioId: ID, yearMon
 
 /** 某日詳細時段（點日格後展開清單） */
 export async function getDaySlots(api: ApiClient, studioId: ID, date: string) {
-  const summary = await getDailyAvailability(api, studioId, date)
-  if (summary?.is_closed) {
-    return { studioId, date, isClosed: true, slots: [] } satisfies DaySlotList
-  }
   const res = await api.get<ScaffoldListResponse<RawTimeSlot>>('/public/time_slots', {
     pageSize: 100,
     filter: [filter('studio_id', 'eq', studioId), filter('slot_date', 'eq', toApiDateTime(date))],
@@ -81,17 +77,6 @@ async function listDailyAvailability(api: ApiClient, studioId: ID, from: string,
     sort: 'availability_date',
   })
   return toScaffoldList(res, (item) => item).items
-}
-
-async function getDailyAvailability(api: ApiClient, studioId: ID, date: string) {
-  const res = await api.get<ScaffoldListResponse<RawStudioDailyAvailability>>('/public/studio_daily_availability', {
-    pageSize: 1,
-    filter: [
-      filter('studio_id', 'eq', studioId),
-      filter('availability_date', 'eq', toApiDateTime(date)),
-    ],
-  })
-  return toScaffoldList(res, (item) => item).items[0]
 }
 
 function monthAvailabilityFromSummary(

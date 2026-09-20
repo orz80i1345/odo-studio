@@ -4,6 +4,7 @@ import { Spinner } from '@studio/shared'
 import { useStudio } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
 import { SceneCard } from '../components/Studio/SceneCard'
+import { SmartImage } from '../components/ui/SmartImage'
 
 export function StudioDetailPage() {
   const { studioSlug } = useParams<{ studioSlug: string }>()
@@ -19,8 +20,8 @@ export function StudioDetailPage() {
     <article className="space-y-20 md:space-y-28">
       {/* 主圖 */}
       <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-sunken">
-        <div className="aspect-[16/9] w-full">
-          {studio.coverUrl && <img src={studio.coverUrl} alt={studio.name} className="size-full object-cover" />}
+        <div className="relative aspect-[16/9] w-full">
+          {studio.coverUrl && <SmartImage src={studio.coverUrl} alt={studio.name} priority />}
         </div>
       </div>
 
@@ -79,7 +80,7 @@ export function StudioDetailPage() {
             <h2 className="mt-4 font-serif text-5xl text-ink">此空間的佈景</h2>
           </div>
           <div className="grid gap-x-10 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
-            {scenesOfStudio.map((s) => <SceneCard key={s.id} scene={s} />)}
+            {scenesOfStudio.map((s, index) => <SceneCard key={s.id} scene={s} priority={index < 3} />)}
           </div>
         </section>
       )}

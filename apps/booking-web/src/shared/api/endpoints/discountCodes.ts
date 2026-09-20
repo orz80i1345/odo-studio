@@ -36,17 +36,17 @@ export async function getDiscountCodeByCode(api: ApiClient, code: string) {
 }
 
 export async function createDiscountCode(api: ApiClient, input: DiscountCodeInput) {
-  const res = await api.post<ScaffoldItemResponse<RawDiscountCode>>('/public/discount_codes', toDiscountCodePayload(input))
+  const res = await api.post<ScaffoldItemResponse<RawDiscountCode>>('/discount_codes', toDiscountCodePayload(input))
   return toDiscountCode(unwrapItem(res))
 }
 
 export async function updateDiscountCode(api: ApiClient, id: ID, input: DiscountCodeInput) {
-  const res = await api.patch<ScaffoldItemResponse<RawDiscountCode>>(`/public/discount_codes/${id}`, toDiscountCodePayload(input))
+  const res = await api.patch<ScaffoldItemResponse<RawDiscountCode>>(`/discount_codes/${id}`, toDiscountCodePayload(input))
   return toDiscountCode(unwrapItem(res))
 }
 
 export function deleteDiscountCode(api: ApiClient, id: ID) {
-  return api.delete<void>(`/public/discount_codes/${id}`)
+  return api.delete<void>(`/discount_codes/${id}`)
 }
 
 export async function validateHourlyDiscountCode(

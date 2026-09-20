@@ -60,21 +60,17 @@ export function TimeSlotPicker({
   const occupiedQuery = useQuery({
     queryKey: ['booking-scene-time-slots', studioId, date, slots.map((slot) => slot.id).join(',')],
     queryFn: async () => {
-      const slotIds = new Set(slots.map((slot) => Number(slot.id)))
-      const items: RawBookingSceneTimeSlot[] = []
-      for (let page = 1; ; page += 1) {
-        const res = await api.get<{ data: RawBookingSceneTimeSlot[]; pagination?: { total?: number } }>('/public/booking_scene_time_slots', {
-          page,
-          pageSize: 100,
-        })
-        const rows = res.data ?? []
-        items.push(...rows.filter((item) => slotIds.has(Number(item.time_slot_id))))
-        const total = res.pagination?.total ?? rows.length
-        if (page * 100 >= total || rows.length === 0) break
-      }
-      return items
+      const res = await api.get<{ data: RawBookingSceneTimeSlot[] }>('/booking_scene_time_slots', {
+        pageSize: 300,
+        filter: [
+          `time_slot_id,in,${slots.map((slot) => slot.id).join(',')}`,
+          'status,eq,active',
+        ],
+      })
+      return res.data ?? []
     },
     enabled: slots.length > 0,
+    staleTime: 10_000,
   })
   const occupiedSceneIdsBySlotId = useMemo(() => {
     const map = new Map<ID, Set<ID>>()
@@ -257,7 +253,7 @@ export function TimeSlotPicker({
       </ul>
 
       <section className="space-y-4 border-t border-line pt-8">
-        <h4 className="font-serif text-3xl text-ink">選擇佈景</h4>
+        <h4 className="font-serif text-3xl text-ink">選擇空間</h4>
         <div className="grid gap-px border border-line bg-line sm:grid-cols-2">
           {sceneAvailability.map(({ scene, unavailable }) => {
             const selected = effectiveSceneIds.includes(scene.id)
@@ -285,7 +281,7 @@ export function TimeSlotPicker({
           })}
         </div>
         {selectedSceneIds.length >= 2 && !forceBuyout && (
-          <p className="text-xs text-ink-3">選擇 2 個以上佈景會自動以包場價格計算，並保留所有佈景。</p>
+          <p className="text-xs text-ink-3">選擇 2 個以上空間會自動以包場價格計算，並保留所有空間。</p>
         )}
       </section>
 
@@ -299,11 +295,11 @@ export function TimeSlotPicker({
                 <span className="ml-2 text-ink-3">（{summary.minutes / 60} 小時）</span>
               </div>
               <div className="mt-0.5 text-ink-2">
-                {bookingMode === 'buyout' ? '包場' : '佈景預約'} · NT$ {summary.hourlyPrice.toLocaleString()}/hr
+                {bookingMode === 'buyout' ? '包場' : '單一空間'} · NT$ {summary.hourlyPrice.toLocaleString()}/hr
                 <span className="ml-2 font-medium text-ink">合計 NT$ {summary.totalPrice.toLocaleString()}</span>
               </div>
               {buyoutUnavailable && (
-                <div className="mt-0.5 text-danger">所選區間已有佈景被預約，無法包場。</div>
+                <div className="mt-0.5 text-danger">所選區間已有空間被預約，無法包場。</div>
               )}
             </>
           ) : (

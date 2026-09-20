@@ -35,21 +35,21 @@ export async function listEquipmentItems(api: ApiClient, params?: { activeOnly?:
 }
 
 export async function createEquipmentItem(api: ApiClient, input: EquipmentItemInput) {
-  const res = await api.post<ScaffoldItemResponse<RawEquipmentItem>>('/public/equipment_items', equipmentPayload(input))
+  const res = await api.post<ScaffoldItemResponse<RawEquipmentItem>>('/equipment_items', equipmentPayload(input))
   return toEquipmentItem(unwrapItem(res))
 }
 
 export async function updateEquipmentItem(api: ApiClient, id: ID, input: EquipmentItemInput) {
-  const res = await api.patch<ScaffoldItemResponse<RawEquipmentItem>>(`/public/equipment_items/${id}`, equipmentPayload(input))
+  const res = await api.patch<ScaffoldItemResponse<RawEquipmentItem>>(`/equipment_items/${id}`, equipmentPayload(input))
   return toEquipmentItem(unwrapItem(res))
 }
 
 export async function deleteEquipmentItem(api: ApiClient, id: ID) {
-  await api.delete(`/public/equipment_items/${id}`)
+  await api.delete(`/equipment_items/${id}`)
 }
 
 export async function listBookingEquipmentItems(api: ApiClient, bookingId: ID) {
-  const res = await api.get<ScaffoldListResponse<RawBookingEquipmentItem>>('/public/booking_equipment_items', {
+  const res = await api.get<ScaffoldListResponse<RawBookingEquipmentItem>>('/booking_equipment_items', {
     pageSize: 100,
     filter: filter('booking_id', 'eq', bookingId),
   })
@@ -61,7 +61,7 @@ export async function listBookingEquipmentTimeSlots(api: ApiClient, params: { eq
   if (params.bookingId) filters.push(filter('booking_id', 'eq', params.bookingId))
   if (params.equipmentItemIds && params.equipmentItemIds.length > 0) filters.push(filter('equipment_item_id', 'in', params.equipmentItemIds.join(',')))
   if (params.timeSlotIds && params.timeSlotIds.length > 0) filters.push(filter('time_slot_id', 'in', params.timeSlotIds.join(',')))
-  const res = await api.get<ScaffoldListResponse<RawBookingEquipmentTimeSlot>>('/public/booking_equipment_time_slots', {
+  const res = await api.get<ScaffoldListResponse<RawBookingEquipmentTimeSlot>>('/booking_equipment_time_slots', {
     pageSize: 500,
     filter: filters,
   })
@@ -86,17 +86,17 @@ export async function createBookingEquipment(api: ApiClient, params: { bookingId
       time_slot_id: timeSlotId,
     })))
 
-  await api.post('/public/booking_equipment_items/batch', itemPayload)
-  await api.post('/public/booking_equipment_time_slots/batch', slotPayload)
+  await api.post('/booking_equipment_items/batch', itemPayload)
+  await api.post('/booking_equipment_time_slots/batch', slotPayload)
 }
 
 export async function deleteBookingEquipment(api: ApiClient, bookingId: ID) {
   const [items, slots] = await Promise.all([
-    api.get<ScaffoldListResponse<{ id: ID }>>('/public/booking_equipment_items', {
+    api.get<ScaffoldListResponse<{ id: ID }>>('/booking_equipment_items', {
       pageSize: 100,
       filter: filter('booking_id', 'eq', bookingId),
     }),
-    api.get<ScaffoldListResponse<{ id: ID }>>('/public/booking_equipment_time_slots', {
+    api.get<ScaffoldListResponse<{ id: ID }>>('/booking_equipment_time_slots', {
       pageSize: 500,
       filter: filter('booking_id', 'eq', bookingId),
     }),
@@ -104,8 +104,8 @@ export async function deleteBookingEquipment(api: ApiClient, bookingId: ID) {
   const itemIds = toScaffoldList(items, (item) => item).items.map((item) => item.id)
   const slotIds = toScaffoldList(slots, (item) => item).items.map((item) => item.id)
   await Promise.all([
-    ...itemIds.map((id) => api.delete(`/public/booking_equipment_items/${id}`)),
-    ...slotIds.map((id) => api.delete(`/public/booking_equipment_time_slots/${id}`)),
+    ...itemIds.map((id) => api.delete(`/booking_equipment_items/${id}`)),
+    ...slotIds.map((id) => api.delete(`/booking_equipment_time_slots/${id}`)),
   ])
 }
 

@@ -155,7 +155,7 @@
 
   /* ---------- 字體 / 圓角 / 陰影 ---------- */
   --font-sans:  'Noto Sans TC', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Libre Caslon Display', 'Noto Serif TC', 'Cormorant Garamond', ui-serif, Georgia, serif;
+  --font-serif: 'Cormorant Garamond', 'Noto Serif TC', ui-serif, Georgia, serif;
 
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
@@ -177,18 +177,18 @@
 :root {
   color-scheme: light;
 
-  --canvas:  oklch(0.985 0.004 75);  /* neutral-50，暖紙 */
-  --surface: oklch(1 0 0);           /* 純白，卡片／表格列 */
-  --raised:  oklch(1 0 0);           /* 抬起面（modal／popover）*/
-  --sunken:  oklch(0.968 0.006 75);  /* 下沉面（section 分隔）*/
+  --canvas:  oklch(0.948 0.020 83);  /* 淡米色紙面 */
+  --surface: oklch(0.976 0.012 83);  /* 近紙白，保留層次 */
+  --raised:  oklch(0.982 0.010 83);  /* 抬起面（modal／popover）*/
+  --sunken:  oklch(0.918 0.024 83);  /* 下沉面（section 分隔）*/
 
   --ink:    oklch(0.218 0.008 75);   /* neutral-900，主文（L=0.22 vs 白 L=1，安全）*/
   --ink-2:  oklch(0.400 0.012 75);   /* neutral-700，次文（L=0.40，通過 <0.45 規則）*/
   --ink-3:  oklch(0.500 0.014 75);   /* neutral-600，提示、時間戳，勿作長文 */
   --ink-on: oklch(0.985 0.004 75);   /* 深底上的字（近白暖）*/
 
-  --line:        oklch(0.935 0.008 75);  /* neutral-200，卡片與 input 邊框 */
-  --line-strong: oklch(0.880 0.010 75);  /* neutral-300，強調邊框、divider */
+  --line:        oklch(0.860 0.018 83);  /* 米色紙面上的細線 */
+  --line-strong: oklch(0.800 0.020 83);  /* 強調邊框、divider */
 
   /* brand — filled action。clay-700 底 + 暖白字，對比安全 */
   --brand:         oklch(0.470 0.086 70);
@@ -339,7 +339,14 @@
  * 4) 全域基底 + focus ring
  * ================================================================ */
 body {
-  background: var(--canvas);
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.52), transparent 26rem),
+    radial-gradient(circle at 78% 12%, rgba(172, 138, 94, 0.08), transparent 22rem),
+    radial-gradient(circle at 45% 86%, rgba(99, 72, 46, 0.055), transparent 28rem),
+    repeating-radial-gradient(circle at 18% 32%, rgba(70, 52, 34, 0.018) 0 1px, transparent 1px 5px),
+    linear-gradient(92deg, rgba(255, 255, 255, 0.12), rgba(80, 55, 34, 0.035) 42%, rgba(255, 255, 255, 0.10)),
+    var(--canvas);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -349,10 +356,10 @@ body {
 
 :root,
 :root:not(.dark) {
-  --canvas: #f4efed;
-  --surface: #fbf7f5;
-  --raised: #fffaf8;
-  --sunken: #e8ded9;
+  --canvas: #eee6d8;
+  --surface: #f8f1e5;
+  --raised: #fbf5eb;
+  --sunken: #dfd4c2;
 
   --ink: #403431;
   --ink-2: #746863;

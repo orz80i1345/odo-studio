@@ -49,8 +49,8 @@ export async function saveScenePrice(api: ApiClient, input: { sceneId: ID; hourl
     metadata: '{}',
   }
   const res = input.priceId
-    ? await api.patch<ScaffoldItemResponse<RawScenePrice>>(`/public/scene_prices/${input.priceId}`, payload)
-    : await api.post<ScaffoldItemResponse<RawScenePrice>>('/public/scene_prices', payload)
+    ? await api.patch<ScaffoldItemResponse<RawScenePrice>>(`/scene_prices/${input.priceId}`, payload)
+    : await api.post<ScaffoldItemResponse<RawScenePrice>>('/scene_prices', payload)
   return toScenePrice(unwrapItem(res))
 }
 
@@ -76,7 +76,7 @@ export async function saveStudioPrice(api: ApiClient, input: { studioId: ID; hou
     metadata: '{}',
   }
   const res = input.priceId
-    ? await api.patch<ScaffoldItemResponse<RawStudioPrice>>(`/public/studio_prices/${input.priceId}`, payload)
-    : await api.post<ScaffoldItemResponse<RawStudioPrice>>('/public/studio_prices', payload)
+    ? await api.patch<ScaffoldItemResponse<RawStudioPrice>>(`/studio_prices/${input.priceId}`, payload)
+    : await api.post<ScaffoldItemResponse<RawStudioPrice>>('/studio_prices', payload)
   return toStudioPrice(unwrapItem(res))
 }

@@ -1,17 +1,19 @@
 import { Link } from 'react-router'
 import type { Studio } from '@studio/shared'
+import { SmartImage } from '../ui/SmartImage'
 
-export function StudioCard({ studio }: { studio: Studio }) {
+export function StudioCard({ studio, priority = false }: { studio: Studio; priority?: boolean }) {
   return (
     <Link
       to={`/studios/${studio.slug}`}
       className="group block"
     >
-      <div className="aspect-[4/3] w-full overflow-hidden bg-sunken">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-sunken">
         {studio.coverUrl && (
-          <img
+          <SmartImage
             src={studio.coverUrl}
             alt={studio.name}
+            priority={priority}
             className="size-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.025]"
           />
         )}

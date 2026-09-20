@@ -43,7 +43,7 @@ export function MyBookingsPage() {
           description="來看看空間，找一個你喜歡的角落。"
           action={
             <Link
-              to="/studios"
+              to="/spaces"
               className="inline-flex h-10 items-center rounded-lg bg-brand px-5 text-sm font-medium text-brand-on hover:bg-brand-hover"
             >
               看看空間

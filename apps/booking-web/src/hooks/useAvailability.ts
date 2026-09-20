@@ -10,6 +10,7 @@ export function useMonthAvailability(studioId: ID | undefined, yearMonth: string
     queryKey: studioId ? queryKeys.studios.availability(studioId, yearMonth) : ['availability', 'noop'],
     queryFn: () => availabilityApi.getMonthAvailability(api, studioId!, yearMonth),
     enabled: !!studioId,
+    staleTime: 60_000,
   })
 }
 
@@ -18,5 +19,6 @@ export function useDaySlots(studioId: ID | undefined, date: string | null) {
     queryKey: studioId && date ? queryKeys.studios.daySlots(studioId, date) : ['day-slots', 'noop'],
     queryFn: () => availabilityApi.getDaySlots(api, studioId!, date!),
     enabled: !!studioId && !!date,
+    staleTime: 10_000,
   })
 }

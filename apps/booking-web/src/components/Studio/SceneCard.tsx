@@ -1,19 +1,19 @@
 import { Link } from 'react-router'
 import type { Scene } from '@studio/shared'
+import { SmartImage } from '../ui/SmartImage'
 
-export function SceneCard({ scene }: { scene: Scene }) {
+export function SceneCard({ scene, priority = false }: { scene: Scene; priority?: boolean }) {
   return (
     <Link
-      to={`/scenes/${scene.slug}`}
+      to={`/spaces/${scene.id}`}
       className="group block"
     >
-      <div className="aspect-square w-full overflow-hidden bg-sunken">
+      <div className="relative aspect-square overflow-hidden bg-sunken">
         {scene.coverUrl && (
-          <img
+          <SmartImage
             src={scene.coverUrl}
             alt={scene.name}
-            loading="lazy"
-            decoding="async"
+            priority={priority}
             className="size-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.025]"
           />
         )}

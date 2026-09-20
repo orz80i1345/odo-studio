@@ -5,7 +5,7 @@
  *
  * 重點：
  *  - 從 useAuth 取得 user，自動預填 email / displayName / phone
- *  - 佈景多選（SceneMultiSelect），可空
+ *  - 空間選擇（內部沿用 sceneIds）
  *  - 送出 → useCreateBooking → navigate 到 /bookings/:id/success
  *  - URL 缺 start/end 時，顯示錯誤並提供回選頁的按鈕
  */
@@ -127,7 +127,7 @@ export function BookingConfirmPage() {
     return (
       <div className="mx-auto max-w-md rounded-xl border border-line bg-surface p-8 text-center">
         <p className="font-serif text-xl text-ink">尚未選擇時段</p>
-        <p className="mt-2 text-sm text-ink-2">請先回月曆選日期、時段與佈景。</p>
+        <p className="mt-2 text-sm text-ink-2">請先回月曆選日期、時段與空間。</p>
         <Link
           to={`/book/${studioIdNum}`}
           className="mt-6 inline-flex h-10 items-center rounded-lg bg-brand px-5 text-sm font-medium text-brand-on hover:bg-brand-hover"
@@ -209,10 +209,10 @@ export function BookingConfirmPage() {
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         {/* 表單 */}
-        <form onSubmit={onSubmit} className="min-w-0 space-y-8 rounded-xl border border-line bg-surface p-6 md:p-8">
+        <form onSubmit={onSubmit} className="min-w-0 space-y-8 border-y border-line py-8">
           <section className="space-y-4">
             <h3 className="font-serif text-lg text-ink">聯絡資料</h3>
-            <dl className="grid gap-3 rounded-lg border border-line bg-sunken p-4 text-sm sm:grid-cols-3">
+            <dl className="grid gap-3 border-y border-line py-4 text-sm sm:grid-cols-3">
               <ContactRow label="姓名" value={user?.displayName ?? '尚未設定'} />
               <ContactRow label="電話" value={user?.phone ?? '尚未設定'} />
               <ContactRow label="Email" value={user?.email ?? '尚未設定'} />
@@ -239,7 +239,7 @@ export function BookingConfirmPage() {
                       )
                     }}
                     className={[
-                      'min-h-24 rounded-lg border p-4 text-left transition-colors',
+                      'min-h-24 border p-4 text-left transition-colors',
                       unavailable
                         ? 'cursor-not-allowed border-line bg-sunken text-ink-3 opacity-60'
                         : selected
@@ -255,7 +255,7 @@ export function BookingConfirmPage() {
                 )
               })}
               {equipmentPage && equipmentPage.items.length === 0 && (
-                <p className="rounded-lg border border-line bg-sunken p-4 text-sm text-ink-3 sm:col-span-2">
+                <p className="border border-line bg-sunken p-4 text-sm text-ink-3 sm:col-span-2">
                   目前沒有可租借器材。
                 </p>
               )}
@@ -286,7 +286,7 @@ export function BookingConfirmPage() {
                       setAppliedDiscount(null)
                       setDiscountCode('')
                     }}
-                    className="h-10 rounded-lg border border-line px-4 text-sm text-ink-2 hover:bg-sunken hover:text-ink"
+                    className="h-10 border border-line px-4 text-sm text-ink-2 hover:bg-sunken hover:text-ink"
                   >
                     移除
                   </button>
@@ -294,12 +294,12 @@ export function BookingConfirmPage() {
               </div>
             </div>
             {appliedDiscount && (
-              <p className="rounded-md bg-success-subtle px-3 py-2 text-sm text-success-subtle-ink">
+              <p className="border-l border-success px-3 py-2 text-sm text-success-subtle-ink">
                 已套用 {appliedDiscount.code}，每小時折 NT$ {appliedDiscount.discountAmount.toLocaleString()}。
               </p>
             )}
             {discountError && (
-              <p className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger-subtle-ink">{discountError}</p>
+              <p className="border-l border-danger px-3 py-2 text-sm text-danger-subtle-ink">{discountError}</p>
             )}
           </section>
 
@@ -340,7 +340,7 @@ export function BookingConfirmPage() {
           </section>
 
           {serverError && (
-            <p className="rounded-md bg-danger-subtle px-3 py-2 text-sm text-danger-subtle-ink">
+            <p className="border-l border-danger px-3 py-2 text-sm text-danger-subtle-ink">
               {serverError}
             </p>
           )}

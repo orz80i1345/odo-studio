@@ -70,11 +70,13 @@ CREATE TABLE "customer_accounts" (
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"deleted_at" TIMESTAMPTZ,
+	"user_id" INTEGER DEFAULT 0,
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "customer_accounts" IS 'customer_accounts @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "customer_accounts" IS 'customer_accounts @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null},{"actor":"user","actions":["read","create","update"],"condition":{"field":"user_id","operator":"eq","target":"actor.id"}}]}';
 COMMENT ON COLUMN "customer_accounts"."created_at" IS '@type=auto_createdtime';
 COMMENT ON COLUMN "customer_accounts"."updated_at" IS '@type=auto_updatedtime';
+COMMENT ON COLUMN "customer_accounts"."user_id" IS '@type=auto_set_user_id';
 CREATE UNIQUE INDEX "idx_customer_accounts_email" ON "customer_accounts" (LOWER(email));
 CREATE INDEX "idx_customer_accounts_phone" ON "customer_accounts" ("phone");
 CREATE INDEX "idx_customer_accounts_active" ON "customer_accounts" ("is_active");
@@ -123,7 +125,7 @@ CREATE TABLE "studios" (
 	"deleted_at" TIMESTAMPTZ,
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "studios" IS 'studios @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "studios" IS 'studios @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]} @public_methods=["GET"]';
 COMMENT ON COLUMN "studios"."created_at" IS '@type=auto_createdtime';
 COMMENT ON COLUMN "studios"."updated_at" IS '@type=auto_updatedtime';
 CREATE UNIQUE INDEX "idx_studios_slug" ON "studios" ("slug");
@@ -145,7 +147,7 @@ CREATE TABLE "studio_images" (
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "studio_images" IS 'studio_images @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "studio_images" IS 'studio_images @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]} @public_methods=["GET"]';
 COMMENT ON COLUMN "studio_images"."created_at" IS '@type=auto_createdtime';
 COMMENT ON COLUMN "studio_images"."updated_at" IS '@type=auto_updatedtime';
 CREATE INDEX "idx_studio_images_studio" ON "studio_images" ("studio_id", "display_order");
@@ -166,7 +168,7 @@ CREATE TABLE "scenes" (
 	"deleted_at" TIMESTAMPTZ,
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "scenes" IS 'scenes @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "scenes" IS 'scenes @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]} @public_methods=["GET"]';
 COMMENT ON COLUMN "scenes"."created_at" IS '@type=auto_createdtime';
 COMMENT ON COLUMN "scenes"."updated_at" IS '@type=auto_updatedtime';
 CREATE INDEX "idx_scenes_studio" ON "scenes" ("studio_id", "display_order");
@@ -187,7 +189,7 @@ CREATE TABLE "scene_images" (
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "scene_images" IS 'scene_images @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "scene_images" IS 'scene_images @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]} @public_methods=["GET"]';
 COMMENT ON COLUMN "scene_images"."created_at" IS '@type=auto_createdtime';
 COMMENT ON COLUMN "scene_images"."updated_at" IS '@type=auto_updatedtime';
 CREATE INDEX "idx_scene_images_scene" ON "scene_images" ("scene_id", "display_order");
@@ -216,7 +218,7 @@ CREATE TABLE "pricing_plans" (
 	"deleted_at" TIMESTAMPTZ,
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "pricing_plans" IS 'pricing_plans @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "pricing_plans" IS 'pricing_plans @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]} @public_methods=["GET"]';
 COMMENT ON COLUMN "pricing_plans"."created_at" IS '@type=auto_createdtime';
 COMMENT ON COLUMN "pricing_plans"."updated_at" IS '@type=auto_updatedtime';
 CREATE INDEX "idx_pricing_plans_studio_priority" ON "pricing_plans" ("studio_id", "priority");
@@ -234,7 +236,7 @@ CREATE TABLE "business_hours" (
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "business_hours" IS 'business_hours @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":{"field":"","operator":"eq","target":"actor.id"}}]} @public_methods=["GET"]';
+COMMENT ON TABLE "business_hours" IS 'business_hours @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]} @public_methods=["GET"]';
 COMMENT ON COLUMN "business_hours"."weekday" IS '@validate="numeric,gte=0,lte=6"';
 COMMENT ON COLUMN "business_hours"."start_minute" IS '@validate="numeric,gte=0,lte=1439"';
 COMMENT ON COLUMN "business_hours"."end_minute" IS '@validate="numeric,gte=0,lte=1440"';
@@ -330,11 +332,13 @@ CREATE TABLE "bookings" (
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"subtotal_price" INTEGER,
 	"booking_mode" VARCHAR(32) NOT NULL DEFAULT 'scenes',
+	"user_id" INTEGER DEFAULT 0,
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "bookings" IS 'bookings @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "bookings" IS 'bookings @public_methods=["GET"] @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null},{"actor":"user","actions":["read"],"condition":null},{"actor":"user","actions":["create","update"],"condition":{"field":"user_id","operator":"eq","target":"actor.id"}}]}';
 COMMENT ON COLUMN "bookings"."created_at" IS '@type=auto_createdtime';
 COMMENT ON COLUMN "bookings"."updated_at" IS '@type=auto_updatedtime';
+COMMENT ON COLUMN "bookings"."user_id" IS '@type=auto_set_user_id';
 CREATE UNIQUE INDEX "idx_bookings_number" ON "bookings" ("booking_number");
 CREATE INDEX "idx_bookings_studio_time" ON "bookings" ("studio_id", "start_at", "end_at");
 CREATE INDEX "idx_bookings_customer_account" ON "bookings" ("customer_account_id");
@@ -379,7 +383,7 @@ CREATE TABLE "payments" (
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "payments" IS 'payments @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "payments" IS 'payments @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]} @public_methods=["GET"]';
 COMMENT ON COLUMN "payments"."created_at" IS '@type=auto_createdtime';
 COMMENT ON COLUMN "payments"."updated_at" IS '@type=auto_updatedtime';
 CREATE UNIQUE INDEX "idx_payments_number" ON "payments" ("payment_number");
@@ -649,7 +653,7 @@ CREATE TABLE "scene_prices" (
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "scene_prices" IS 'scene_prices @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "scene_prices" IS 'scene_prices @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]} @public_methods=["GET"]';
 COMMENT ON COLUMN "scene_prices"."created_at" IS '@type=auto_createdtime';
 COMMENT ON COLUMN "scene_prices"."updated_at" IS '@type=auto_updatedtime';
 CREATE INDEX "idx_scene_prices_scene" ON "scene_prices" ("scene_id");
@@ -682,10 +686,12 @@ CREATE TABLE "booking_scene_time_slots" (
 	"status" VARCHAR(32) NOT NULL DEFAULT 'active',
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"cancelled_at" TIMESTAMPTZ,
+	"user_id" INTEGER DEFAULT 0,
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "booking_scene_time_slots" IS 'booking_scene_time_slots @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "booking_scene_time_slots" IS 'booking_scene_time_slots @public_methods=["GET"] @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null},{"actor":"user","actions":["read"],"condition":null},{"actor":"user","actions":["create","update"],"condition":{"field":"user_id","operator":"eq","target":"actor.id"}}]}';
 COMMENT ON COLUMN "booking_scene_time_slots"."created_at" IS '@type=auto_createdtime';
+COMMENT ON COLUMN "booking_scene_time_slots"."user_id" IS '@type=auto_set_user_id';
 CREATE INDEX "idx_booking_scene_time_slots_booking" ON "booking_scene_time_slots" ("booking_id");
 CREATE INDEX "idx_booking_scene_time_slots_scene" ON "booking_scene_time_slots" ("scene_id");
 CREATE INDEX "idx_booking_scene_time_slots_time_slot" ON "booking_scene_time_slots" ("time_slot_id");
@@ -704,7 +710,7 @@ CREATE TABLE "equipment_items" (
 	"updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "equipment_items" IS 'equipment_items @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "equipment_items" IS 'equipment_items @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]} @public_methods=["GET"]';
 COMMENT ON COLUMN "equipment_items"."created_at" IS '@type=auto_createdtime';
 COMMENT ON COLUMN "equipment_items"."updated_at" IS '@type=auto_updatedtime';
 CREATE INDEX "idx_equipment_items_active_order" ON "equipment_items" ("is_active", "display_order");
@@ -719,10 +725,12 @@ CREATE TABLE "booking_equipment_items" (
 	"subtotal" NUMERIC(10,2) NOT NULL DEFAULT 0,
 	"metadata" JSONB NOT NULL DEFAULT '{}',
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"user_id" INTEGER DEFAULT 0,
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "booking_equipment_items" IS 'booking_equipment_items @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "booking_equipment_items" IS 'booking_equipment_items @public_methods=["GET"] @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null},{"actor":"user","actions":["read"],"condition":null},{"actor":"user","actions":["create","update"],"condition":{"field":"user_id","operator":"eq","target":"actor.id"}}]}';
 COMMENT ON COLUMN "booking_equipment_items"."created_at" IS '@type=auto_createdtime';
+COMMENT ON COLUMN "booking_equipment_items"."user_id" IS '@type=auto_set_user_id';
 CREATE INDEX "idx_booking_equipment_items_booking" ON "booking_equipment_items" ("booking_id");
 
 CREATE TABLE "booking_equipment_time_slots" (
@@ -731,9 +739,10 @@ CREATE TABLE "booking_equipment_time_slots" (
 	"equipment_item_id" INTEGER NOT NULL,
 	"time_slot_id" INTEGER NOT NULL,
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	"user_id" INTEGER,
 	PRIMARY KEY("id")
 );
-COMMENT ON TABLE "booking_equipment_time_slots" IS 'booking_equipment_time_slots @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null}]}';
+COMMENT ON TABLE "booking_equipment_time_slots" IS 'booking_equipment_time_slots @public_methods=["GET"] @oso={"rules":[{"actor":"admin","actions":["read","create","update","delete"],"condition":null},{"actor":"user","actions":["read"],"condition":null},{"actor":"user","actions":["create","update"],"condition":{"field":"user_id","operator":"eq","target":"actor.id"}}]}';
 COMMENT ON COLUMN "booking_equipment_time_slots"."created_at" IS '@type=auto_createdtime';
 CREATE UNIQUE INDEX "uq_booking_equipment_time_slot" ON "booking_equipment_time_slots" ("equipment_item_id", "time_slot_id");
 CREATE INDEX "idx_booking_equipment_time_slots_booking" ON "booking_equipment_time_slots" ("booking_id");

@@ -6,6 +6,7 @@ import type { ID, DateString } from './common'
 
 export interface CustomerAccount {
   id: ID
+  userId?: ID
   email: string
   phone?: string
   displayName?: string

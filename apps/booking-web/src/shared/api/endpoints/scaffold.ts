@@ -229,6 +229,7 @@ export interface RawBankAccount {
 
 export interface RawCustomerAccount {
   id: ID
+  user_id?: ID
   email: string
   phone?: string
   display_name?: string
@@ -515,6 +516,7 @@ export function toBankAccount(raw: RawBankAccount): BankAccount {
 export function toCustomer(raw: RawCustomerAccount): CustomerAccount {
   return {
     id: raw.id,
+    userId: raw.user_id,
     email: raw.email,
     phone: raw.phone,
     displayName: raw.display_name,

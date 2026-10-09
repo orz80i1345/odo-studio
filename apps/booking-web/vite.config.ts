@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       strictPort: true,
+      allowedHosts: ['3000-i45k96nxenyxtpqory39g.e2b.app'],
       proxy: {
         '/api': {
           target: apiOrigin,

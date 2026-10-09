@@ -1,6 +1,7 @@
 import { Spinner } from '@studio/shared'
 import { useMemo } from 'react'
 import { PageHeader } from '../components/ui/PageHeader'
+import { ScrollReveal } from '../components/ui/ScrollReveal'
 import { useScenePrices, useStudioBuyoutPrice } from '../hooks/usePricing'
 import { useScenes } from '../hooks/useScenes'
 import { useStudios } from '../hooks/useStudios'
@@ -84,26 +85,28 @@ function PriceRow({
   unit: string
 }) {
   return (
-    <article className="grid gap-8 border-t border-line pt-10 md:grid-cols-[minmax(0,1fr)_280px] md:items-end">
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.32em] text-ink-3">{eyebrow}</p>
-        <h2 className="mt-5 font-serif text-5xl font-medium leading-[0.98] text-ink md:text-6xl">{title}</h2>
-        <p className="mt-6 max-w-xl text-sm leading-8 text-ink-2">{description}</p>
-      </div>
-      <dl className="border-y border-line py-6 text-sm">
-        <div className="flex items-baseline justify-between gap-6">
-          <dt className="text-[10px] uppercase tracking-[0.22em] text-ink-3">Price / hr</dt>
-          <dd className="font-serif text-4xl leading-none text-ink">NT$ {price.toLocaleString()}</dd>
+    <ScrollReveal distance={42}>
+      <article className="grid gap-8 border-t border-line pt-10 md:grid-cols-[minmax(0,1fr)_280px] md:items-end">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.32em] text-ink-3">{eyebrow}</p>
+          <h2 className="mt-5 font-serif text-5xl font-medium leading-[0.98] text-ink md:text-6xl">{title}</h2>
+          <p className="mt-6 max-w-xl text-sm leading-8 text-ink-2">{description}</p>
         </div>
-        <div className="mt-5 flex items-baseline justify-between gap-6 border-t border-line pt-5">
-          <dt className="text-[10px] uppercase tracking-[0.22em] text-ink-3">Minimum</dt>
-          <dd className="text-ink-2">{minimum}</dd>
-        </div>
-        <div className="mt-3 flex items-baseline justify-between gap-6">
-          <dt className="text-[10px] uppercase tracking-[0.22em] text-ink-3">Unit</dt>
-          <dd className="text-ink-2">{unit}</dd>
-        </div>
-      </dl>
-    </article>
+        <dl className="border-y border-line py-6 text-sm">
+          <div className="flex items-baseline justify-between gap-6">
+            <dt className="text-[10px] uppercase tracking-[0.22em] text-ink-3">Price / hr</dt>
+            <dd className="font-serif text-4xl leading-none text-ink">NT$ {price.toLocaleString()}</dd>
+          </div>
+          <div className="mt-5 flex items-baseline justify-between gap-6 border-t border-line pt-5">
+            <dt className="text-[10px] uppercase tracking-[0.22em] text-ink-3">Minimum</dt>
+            <dd className="text-ink-2">{minimum}</dd>
+          </div>
+          <div className="mt-3 flex items-baseline justify-between gap-6">
+            <dt className="text-[10px] uppercase tracking-[0.22em] text-ink-3">Unit</dt>
+            <dd className="text-ink-2">{unit}</dd>
+          </div>
+        </dl>
+      </article>
+    </ScrollReveal>
   )
 }

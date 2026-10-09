@@ -20,6 +20,7 @@ import {
 import { validateHourlyDiscountCode } from './discountCodes'
 import { getDepositRatio } from './systemSettings'
 import { listScenePrices, listStudioPrices } from './pricing'
+import { cancelPendingPayments, createPendingPayment, submitBankTransferProof } from './payments'
 
 /** 建立預約（登入會員） */
 export async function createBooking(api: ApiClient, input: CreateBookingInput) {
@@ -44,10 +45,12 @@ export async function createBooking(api: ApiClient, input: CreateBookingInput) {
   const res = await api.post<ScaffoldItemResponse<RawBooking>>('/public/bookings', toBookingCreate({ ...input, bookingMode, discount }, finalTotals))
   const booking = toBooking(unwrapItem(res))
   try {
+    await createPendingPayment(api, booking)
     await createBookingSceneTimeSlots(api, booking, sceneIds, slots.map((slot) => slot.id))
     if (booking.bookingMode === 'buyout') await syncBookingTimeSlots(api, booking, 'booked')
   } catch (error) {
     await deleteBookingSceneTimeSlots(api, booking.id).catch(() => {})
+    await cancelPendingPayments(api, booking.id).catch(() => {})
     await api.patch(`/public/bookings/${booking.id}`, {
       status: 'cancelled',
       cancellation_reason: 'scene_slot_conflict',
@@ -91,26 +94,15 @@ export async function cancelBooking(api: ApiClient, bookingId: ID, reason?: stri
   })
   const booking = toBooking(unwrapItem(res))
   await deleteBookingSceneTimeSlots(api, booking.id)
+  await cancelPendingPayments(api, booking.id)
   await syncBookingTimeSlots(api, booking, 'available')
   await syncDailyAvailability(api, booking.studioId, localDateFromIso(booking.startAt)).catch(() => {})
   return booking
 }
 
 export async function submitPaymentProof(api: ApiClient, booking: Booking, proof: BookingPaymentProof) {
-  const metadata = {
-    ...booking.metadata,
-    paymentProof: {
-      ...proof,
-      bankLast5: proof.bankLast5?.trim(),
-      payerName: proof.payerName?.trim(),
-      paymentNote: proof.paymentNote?.trim(),
-      submittedAt: new Date().toISOString(),
-    },
-  }
-  const res = await api.patch<ScaffoldItemResponse<RawBooking>>(`/public/bookings/${booking.id}`, {
-    metadata: JSON.stringify(metadata),
-  })
-  return toBooking(unwrapItem(res))
+  await submitBankTransferProof(api, booking, proof)
+  return booking
 }
 
 async function getBookingSlots(api: ApiClient, input: Pick<CreateBookingInput, 'studioId' | 'startAt' | 'endAt'>) {

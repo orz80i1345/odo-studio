@@ -60,7 +60,7 @@ export function TimeSlotPicker({
   const occupiedQuery = useQuery({
     queryKey: ['booking-scene-time-slots', studioId, date, slots.map((slot) => slot.id).join(',')],
     queryFn: async () => {
-      const res = await api.get<{ data: RawBookingSceneTimeSlot[] }>('/booking_scene_time_slots', {
+      const res = await api.get<{ data: RawBookingSceneTimeSlot[] }>('/public/booking_scene_time_slots', {
         pageSize: 300,
         filter: [
           `time_slot_id,in,${slots.map((slot) => slot.id).join(',')}`,

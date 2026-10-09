@@ -23,6 +23,15 @@ export function RootLayout() {
     setMenuOpen(false)
   }, [location.pathname, location.search])
 
+  useEffect(() => {
+    if (!menuOpen) return
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [menuOpen])
+
   function signOut() {
     logout()
     setMenuOpen(false)
@@ -32,7 +41,7 @@ export function RootLayout() {
     <div className="flex min-h-screen flex-col bg-canvas">
       {/* header */}
       <header className="sticky top-0 z-20 border-b border-line/80 bg-canvas/40 backdrop-blur-md">
-        <div className="relative mx-auto flex h-16 w-full max-w-[1080px] items-center justify-between px-5 md:px-8">
+        <div className="relative flex h-16 w-full items-center justify-between px-5 md:px-8">
           <Link to="/" className="flex items-baseline gap-2.5">
             <span className="font-serif text-xl leading-none text-ink">河日</span>
             <span className="text-[10px] uppercase tracking-[0.34em] text-ink-3">Ode Studio</span>
@@ -59,9 +68,9 @@ export function RootLayout() {
             onClick={() => setMenuOpen((value) => !value)}
             className="inline-flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-md border border-line bg-canvas/45 transition-colors duration-500 hover:bg-surface md:hidden"
           >
-            <span className={cn('h-0.5 w-5 rounded-full bg-ink transition-transform duration-300', menuOpen && 'translate-y-2 rotate-45')} />
+            <span className={cn('h-0.5 w-5 rounded-full bg-ink transition-transform duration-500 ease-out', menuOpen && 'translate-y-2 rotate-45')} />
             <span className={cn('h-0.5 w-5 rounded-full bg-ink transition-opacity duration-300', menuOpen && 'opacity-0')} />
-            <span className={cn('h-0.5 w-5 rounded-full bg-ink transition-transform duration-300', menuOpen && '-translate-y-2 -rotate-45')} />
+            <span className={cn('h-0.5 w-5 rounded-full bg-ink transition-transform duration-500 ease-out', menuOpen && '-translate-y-2 -rotate-45')} />
           </button>
 
           <div className="hidden items-center gap-2 md:flex">
@@ -95,55 +104,76 @@ export function RootLayout() {
           </div>
         </div>
 
-        {menuOpen && (
-          <div className="border-t border-line bg-canvas/40 px-5 py-7 backdrop-blur-md md:hidden">
-            <nav className="grid gap-1">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    cn(
-                      'border-b border-line py-4 font-serif text-3xl leading-none text-ink-2 transition-colors duration-500 hover:text-ink',
-                      isActive && 'text-ink',
-                    )
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-            <div className="mt-7 border-t border-line pt-5">
-              {isAuthenticated ? (
-                <div className="grid gap-3">
-                  <Link
-                    to="/account"
-                    className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-ink-2"
-                  >
-                    <User className="size-4" />
-                    {user?.displayName ?? '我的帳號'}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={signOut}
-                    className="inline-flex items-center gap-2 text-left text-xs uppercase tracking-[0.18em] text-ink-3"
-                  >
-                    <LogOut className="size-4" />
-                    登出
-                  </button>
-                </div>
-              ) : (
+        <button
+          type="button"
+          aria-label="關閉選單"
+          tabIndex={menuOpen ? 0 : -1}
+          onClick={() => setMenuOpen(false)}
+          className={cn(
+            'fixed inset-x-0 bottom-0 top-16 z-0 bg-ink/10 backdrop-blur-[2px] transition-opacity duration-500 md:hidden',
+            menuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+          )}
+        />
+
+        <div
+          aria-hidden={!menuOpen}
+          className={cn(
+            'absolute inset-x-0 top-full z-10 origin-top border-t border-line bg-canvas/95 px-5 py-7 shadow-raised backdrop-blur-xl transition-[opacity,transform,visibility] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:hidden',
+            menuOpen
+              ? 'visible translate-y-0 scale-y-100 opacity-100'
+              : 'invisible pointer-events-none -translate-y-4 scale-y-95 opacity-0',
+          )}
+        >
+          <nav className="grid gap-1">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                tabIndex={menuOpen ? 0 : -1}
+                className={({ isActive }) =>
+                  cn(
+                    'border-b border-line py-4 font-serif text-3xl leading-none text-ink-2 transition-colors duration-500 hover:text-ink',
+                    isActive && 'text-ink',
+                  )
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="mt-7 border-t border-line pt-5">
+            {isAuthenticated ? (
+              <div className="grid gap-3">
                 <Link
-                  to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`}
+                  to="/account"
+                  tabIndex={menuOpen ? 0 : -1}
                   className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-ink-2"
                 >
-                  <LogIn className="size-4" />
-                  登入
+                  <User className="size-4" />
+                  {user?.displayName ?? '我的帳號'}
                 </Link>
-              )}
-            </div>
+                <button
+                  type="button"
+                  tabIndex={menuOpen ? 0 : -1}
+                  onClick={signOut}
+                  className="inline-flex items-center gap-2 text-left text-xs uppercase tracking-[0.18em] text-ink-3"
+                >
+                  <LogOut className="size-4" />
+                  登出
+                </button>
+              </div>
+            ) : (
+              <Link
+                to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`}
+                tabIndex={menuOpen ? 0 : -1}
+                className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-ink-2"
+              >
+                <LogIn className="size-4" />
+                登入
+              </Link>
+            )}
           </div>
-        )}
+        </div>
       </header>
 
       {/* content */}

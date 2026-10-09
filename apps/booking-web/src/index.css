@@ -1,2 +1,32 @@
 /* booking-web 入口樣式：主題來自 @studio/shared/theme.css */
 @import '@studio/shared/theme.css';
+
+/* 捲動進場：短距離上浮，搭配輕微失焦，讓內容自然回到版面位置。 */
+.scroll-reveal {
+  opacity: 0;
+  filter: blur(5px);
+  transform: translate3d(0, var(--reveal-distance, 36px), 0);
+  transition:
+    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 800ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, filter, transform;
+}
+
+.scroll-reveal--visible {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate3d(0, 0, 0);
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal,
+  .scroll-reveal--visible {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+  }
+}

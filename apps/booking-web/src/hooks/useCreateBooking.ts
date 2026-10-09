@@ -36,6 +36,7 @@ export function useSubmitPaymentProof() {
     onSuccess: (booking) => {
       qc.invalidateQueries({ queryKey: queryKeys.bookings.mine })
       qc.setQueryData(queryKeys.bookings.detail(booking.id), booking)
+      qc.invalidateQueries({ queryKey: queryKeys.payments.booking(booking.id) })
     },
   })
 }

@@ -14,7 +14,9 @@ export function StudiosPage() {
       />
       {isLoading && <div className="py-16 text-center"><Spinner /></div>}
       <div className="grid gap-14 md:grid-cols-2 md:gap-20">
-        {data?.items.map((s, index) => <StudioCard key={s.id} studio={s} priority={index < 2} />)}
+        {data?.items.map((s, index) => (
+          <StudioCard key={s.id} studio={s} priority={index < 2} delay={(index % 2) * 110} />
+        ))}
       </div>
     </div>
   )

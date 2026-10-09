@@ -27,6 +27,9 @@ export const queryKeys = {
     mine: ['bookings', 'mine'] as const,
     detail: (bookingId: ID) => ['bookings', bookingId] as const,
   },
+  payments: {
+    booking: (bookingId: ID) => ['payments', 'booking', bookingId] as const,
+  },
   bankAccounts: {
     active: ['bank-accounts', 'active'] as const,
   },

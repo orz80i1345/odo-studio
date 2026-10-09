@@ -8,13 +8,14 @@
  */
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ApiError, Spinner, isPendingPayment, type BookingPaymentProof } from '@studio/shared'
+import { ApiError, Spinner, isPendingPayment, type BookingPaymentProof, type Payment } from '@studio/shared'
 import { useBooking } from '../hooks/useMyBookings'
 import { useStudio } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
 import { useCancelBooking, useSubmitPaymentProof } from '../hooks/useCreateBooking'
 import { useActiveBankAccounts } from '../hooks/useBankAccounts'
 import { useBookingEquipment } from '../hooks/useEquipment'
+import { useBookingPayments } from '../hooks/usePayments'
 import { PageHeader } from '../components/ui/PageHeader'
 import { BookingSummary } from '../components/Booking/BookingSummary'
 import { BankTransferInfo } from '../components/Booking/BankTransferInfo'
@@ -29,6 +30,7 @@ export function BookingDetailPage() {
   const { user } = useAuth()
 
   const { data: booking, isLoading } = useBooking(bookingIdNum)
+  const { data: payments, isLoading: isLoadingPayments } = useBookingPayments(bookingIdNum)
   const { data: studio } = useStudio(booking?.studioId)
   const { data: scenes } = useScenes(booking?.studioId)
   const { data: bankAccounts } = useActiveBankAccounts()
@@ -38,7 +40,7 @@ export function BookingDetailPage() {
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null)
 
-  if (isLoading) return <div className="py-16 text-center"><Spinner /></div>
+  if (isLoading || isLoadingPayments) return <div className="py-16 text-center"><Spinner /></div>
   if (!booking || !studio) return <p className="py-16 text-center text-ink-2">找不到此預約。</p>
   if (booking.customerEmail !== user?.email) {
     return (
@@ -64,7 +66,8 @@ export function BookingDetailPage() {
   const showBankInfo = isPendingPayment(booking)
   const canCancel = booking.status === 'pending' || booking.status === 'confirmed'
   const paymentLabel = booking.depositAmount >= booking.totalPrice ? '應付全額' : '訂金'
-  const paymentProof = paymentProofFromMetadata(booking.metadata)
+  const payment = payments?.find((item) => item.status === 'pending' || item.status === 'failed') ?? payments?.[0]
+  const paymentProof = paymentProofFromPayment(payment, booking.metadata)
 
   async function onCancel() {
     if (!bookingIdNum) return
@@ -81,9 +84,15 @@ export function BookingDetailPage() {
   async function onSubmitPaymentProof(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const bankLast5 = String(form.get('bankLast5') ?? '').trim()
-    if (!/^\d{5}$/.test(bankLast5)) {
-      setPaymentMessage('請輸入匯款帳號後五碼')
+    const bankLast4 = String(form.get('bankLast4') ?? '').trim()
+    if (!/^\d{4}$/.test(bankLast4)) {
+      setPaymentMessage('請輸入匯款帳號末四碼')
+      return
+    }
+    const paidAtValue = String(form.get('paidAt') ?? '').trim()
+    const paidAt = new Date(paidAtValue)
+    if (!paidAtValue || Number.isNaN(paidAt.getTime())) {
+      setPaymentMessage('請輸入正確的匯款時間')
       return
     }
     try {
@@ -92,15 +101,15 @@ export function BookingDetailPage() {
       await submitProof.mutateAsync({
         booking,
         proof: {
-          bankLast5,
+          bankLast4,
           payerName: String(form.get('payerName') ?? '').trim() || undefined,
-          paidAt: String(form.get('paidAt') ?? '').trim() || undefined,
+          paidAt: paidAt.toISOString(),
           paymentNote: String(form.get('paymentNote') ?? '').trim() || undefined,
         },
       })
       setPaymentMessage('匯款資訊已送出')
     } catch (e) {
-      setPaymentMessage(e instanceof ApiError ? e.message : '匯款資訊送出失敗，請稍後再試')
+      setPaymentMessage(e instanceof Error ? e.message : '匯款資訊送出失敗，請稍後再試')
     }
   }
 
@@ -151,14 +160,14 @@ export function BookingDetailPage() {
               <h3 className="font-serif text-lg text-ink">回報匯款資訊</h3>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm">
-                  <span className="text-ink-2">帳號後五碼</span>
+                  <span className="text-ink-2">帳號末四碼</span>
                   <input
-                    name="bankLast5"
+                    name="bankLast4"
                     inputMode="numeric"
-                    pattern="\d{5}"
-                    maxLength={5}
+                    pattern="\d{4}"
+                    maxLength={4}
                     required
-                    defaultValue={paymentProof.bankLast5 ?? ''}
+                    defaultValue={paymentProof.bankLast4 ?? ''}
                     className="mt-1 h-11 w-full rounded-lg border border-line bg-sunken px-3 text-ink outline-none focus:border-brand"
                   />
                 </label>
@@ -175,7 +184,8 @@ export function BookingDetailPage() {
                   <input
                     name="paidAt"
                     type="datetime-local"
-                    defaultValue={paymentProof.paidAt?.slice(0, 16) ?? ''}
+                    required
+                    defaultValue={toDateTimeLocal(paymentProof.paidAt)}
                     className="mt-1 h-11 w-full rounded-lg border border-line bg-sunken px-3 text-ink outline-none focus:border-brand"
                   />
                 </label>
@@ -278,7 +288,34 @@ function Row({ label, value }: { label: string; value: string }) {
   )
 }
 
-function paymentProofFromMetadata(metadata: Record<string, unknown>): BookingPaymentProof {
+function paymentProofFromPayment(payment: Payment | undefined, metadata: Record<string, unknown>): BookingPaymentProof {
+  if (payment) {
+    return {
+      bankLast4: payment.payerLast4,
+      payerName: payment.payerName,
+      paidAt: payment.transferredAt,
+      paymentNote: typeof payment.metadata.customerPaymentNote === 'string'
+        ? payment.metadata.customerPaymentNote
+        : undefined,
+    }
+  }
   const value = metadata.paymentProof
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as BookingPaymentProof : {}
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const proof = value as Record<string, unknown>
+  return {
+    ...proof,
+    bankLast4: typeof proof.bankLast4 === 'string'
+      ? proof.bankLast4
+      : typeof proof.bankLast5 === 'string'
+        ? proof.bankLast5.slice(-4)
+        : undefined,
+  } as BookingPaymentProof
+}
+
+function toDateTimeLocal(value?: string) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+  return local.toISOString().slice(0, 16)
 }

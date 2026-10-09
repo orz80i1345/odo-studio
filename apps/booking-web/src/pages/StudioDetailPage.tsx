@@ -80,7 +80,9 @@ export function StudioDetailPage() {
             <h2 className="mt-4 font-serif text-5xl text-ink">此空間的佈景</h2>
           </div>
           <div className="grid gap-x-10 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
-            {scenesOfStudio.map((s, index) => <SceneCard key={s.id} scene={s} priority={index < 3} />)}
+            {scenesOfStudio.map((s, index) => (
+              <SceneCard key={s.id} scene={s} priority={index < 3} delay={(index % 3) * 90} />
+            ))}
           </div>
         </section>
       )}

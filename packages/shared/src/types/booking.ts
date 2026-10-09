@@ -27,7 +27,7 @@ export type BookingSource = 'web' | 'phone' | 'walk_in' | 'admin'
 export type BookingMode = 'scenes' | 'buyout'
 
 export interface BookingPaymentProof {
-  bankLast5?: string
+  bankLast4?: string
   payerName?: string
   paidAt?: string
   paymentNote?: string

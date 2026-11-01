@@ -1,216 +1,172 @@
 /**
- * 用末四碼、金額與入帳時間核對 payments，並同步 bookings 狀態。
+ * 每分鐘由 Apps Script 時間驅動觸發器執行。
  *
- * Apps Script 指令碼屬性：
- * - ODO_API_BASE_URL，例如 https://cv3op1ht.cgapps.dev/api
- * - ODO_API_KEY
- * - ODO_ADMIN_ACCOUNT
- * - ODO_ADMIN_PASSWORD
- * - ODO_PAYMENT_TIME_TOLERANCE_MINUTES（選填，預設 30）
- *
- * Gmail 解析完成後呼叫：
- * reconcileOdoPayment('1234', 1500, new Date())
+ * 注意：銀行信中的「您的存款帳號末四碼」是收款帳戶末四碼，
+ * 不是付款人的帳號末四碼，所以 payload 使用 creditedAccountLast4。
  */
-function reconcileOdoPayment(last4, amount, transferredAt) {
-  var normalizedLast4 = String(last4 || '').trim();
-  var normalizedAmount = Number(String(amount).replace(/,/g, '').trim());
-  var paidAt = new Date(transferredAt);
+var CONFIG = {
+  // API Base URL 要包含 /api，但結尾不要加斜線。
+  API_BASE_URL: 'https://你的網域.cgapps.dev/api',
+  WORKFLOW_ID: 'fb3fb6f3-6937-4abf-99dc-143ef20ed0d8',
 
-  if (!/^\d{4}$/.test(normalizedLast4)) {
-    throw new Error('匯款帳號末四碼格式錯誤');
+  GMAIL_QUERY: 'label:bank-webhook is:unread',
+  TIME_ZONE: 'Asia/Taipei',
+  MATCH_TOLERANCE_MINUTES: 30
+};
+
+function checkBankMail() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) {
+    console.log('前一次銀行信件檢查仍在執行，本次略過');
+    return;
   }
-  if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+
+  try {
+    var errorLabel = GmailApp.getUserLabelByName('bank-webhook-error') ||
+      GmailApp.createLabel('bank-webhook-error');
+    var threads = GmailApp.search(CONFIG.GMAIL_QUERY, 0, 100);
+
+    threads.forEach(function (thread) {
+      thread.getMessages().forEach(function (message) {
+        if (!message.isUnread()) return;
+
+        var bankEvent;
+        try {
+          bankEvent = parseBankDepositMail_(message);
+        } catch (error) {
+          console.error('銀行信件解析失敗：' + message.getId() + '，' + error.message);
+          // Gmail label 屬於整個 thread，因此只用 label 提醒人工檢查，
+          // 並將目前這封格式不符的 message 標成已讀，避免每分鐘重複解析。
+          thread.addLabel(errorLabel);
+          message.markRead();
+          return;
+        }
+
+        try {
+          var result = sendBankEventToWorkflow_(bankEvent);
+          console.log(JSON.stringify({
+            message: '銀行入帳事件已由 workflow 接收',
+            gmailMessageId: message.getId(),
+            result: result
+          }));
+          message.markRead();
+        } catch (error) {
+          // Webhook 未成功接收時維持未讀，下次觸發器會使用相同 eventId 重試。
+          console.error('銀行入帳 workflow 處理失敗：' + message.getId() + '，' + error.message);
+        }
+      });
+    });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function parseBankDepositMail_(message) {
+  var body = message.getPlainBody().replace(/\u00a0/g, ' ');
+  var match = body.match(
+    /(?:存款)?帳號末四碼\s*(\d{4})\s*於\s*(\d{1,2})\/(\d{1,2})\s+(\d{1,2})[:：](\d{2})\s*有金額入帳\s*(?:新?[臺台]幣|NT\$?)\s*([\d,]+(?:\.\d{1,2})?)\s*元/i
+  );
+
+  if (!match) {
+    throw new Error('找不到帳號末四碼、入帳時間或金額');
+  }
+
+  var creditedAccountLast4 = match[1];
+  var amount = Number(match[6].replace(/,/g, ''));
+  if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error('入帳金額格式錯誤');
   }
-  if (!transferredAt || isNaN(paidAt.getTime())) {
-    throw new Error('入帳時間格式錯誤');
-  }
 
-  var toleranceValue = PropertiesService.getScriptProperties()
-    .getProperty('ODO_PAYMENT_TIME_TOLERANCE_MINUTES') || '30';
-  var toleranceMinutes = Number(toleranceValue);
-  if (!Number.isFinite(toleranceMinutes) || toleranceMinutes <= 0) {
-    throw new Error('ODO_PAYMENT_TIME_TOLERANCE_MINUTES 格式錯誤');
-  }
-
-  var token = loginOdoAdmin_();
-  var candidates = findPaymentCandidates_(
-    normalizedLast4,
-    normalizedAmount,
-    paidAt,
-    toleranceMinutes,
-    token
+  var occurredAt = inferBankOccurredAt_(
+    Number(match[2]),
+    Number(match[3]),
+    Number(match[4]),
+    Number(match[5]),
+    message.getDate(),
+    CONFIG.TIME_ZONE
   );
-  var payable = candidates.filter(function (payment) {
-    return payment.status === 'pending' || payment.status === 'failed';
-  });
-
-  if (payable.length > 1) {
-    throw new Error('末四碼、金額與時間符合多筆待付款紀錄，已停止自動更新');
-  }
-
-  if (payable.length === 0) {
-    var processed = candidates.filter(function (payment) {
-      return payment.status === 'paid';
-    });
-    if (processed.length === 1) {
-      finalizeBookingForPayment_(processed[0], token);
-      return {
-        result: 'already_processed',
-        paymentId: processed[0].id,
-        bookingId: processed[0].booking_id
-      };
-    }
-    throw new Error('找不到唯一符合末四碼、金額與時間的待付款紀錄');
-  }
-
-  var payment = payable[0];
-  var metadata = parseMetadata_(payment.metadata);
-  metadata.paymentReconciliation = {
-    source: 'gmail_apps_script',
-    bankLast4: normalizedLast4,
-    amount: normalizedAmount,
-    transferredAt: paidAt.toISOString(),
-    reconciledAt: new Date().toISOString()
-  };
-
-  var updatedResponse = odoApiRequest_(
-    '/payments/' + encodeURIComponent(payment.id),
-    'patch',
-    {
-      status: 'paid',
-      verified_at: new Date().toISOString(),
-      metadata: JSON.stringify(metadata)
-    },
-    token
-  );
-  var updatedPayment = updatedResponse.data || updatedResponse;
-  finalizeBookingForPayment_(updatedPayment, token);
+  var toleranceMilliseconds = CONFIG.MATCH_TOLERANCE_MINUTES * 60 * 1000;
 
   return {
-    result: 'updated',
-    paymentId: updatedPayment.id,
-    bookingId: updatedPayment.booking_id,
-    paymentStatus: updatedPayment.status
+    eventId: 'gmail:' + message.getId(),
+    source: 'gmail_bank_deposit',
+    gmailMessageId: message.getId(),
+    gmailThreadId: message.getThread().getId(),
+    creditedAccountLast4: creditedAccountLast4,
+    amount: amount,
+    currency: 'TWD',
+    occurredAt: occurredAt.toISOString(),
+    matchWindowStart: new Date(occurredAt.getTime() - toleranceMilliseconds).toISOString(),
+    matchWindowEnd: new Date(occurredAt.getTime() + toleranceMilliseconds).toISOString(),
+    emailReceivedAt: message.getDate().toISOString()
   };
 }
 
-function findPaymentCandidates_(last4, amount, transferredAt, toleranceMinutes, token) {
-  var windowStart = new Date(transferredAt.getTime() - toleranceMinutes * 60 * 1000);
-  var windowEnd = new Date(transferredAt.getTime() + toleranceMinutes * 60 * 1000);
-  var filters = [
-    // 部署 API 的 doc.json 目前將此欄位命名為 payer_las4。
-    ['payer_las4', 'eq', last4],
-    ['amount', 'eq', amount],
-    ['transferred_at', 'gte', windowStart.toISOString()],
-    ['transferred_at', 'lte', windowEnd.toISOString()]
-  ];
-  return listPayments_(filters, token).filter(function (payment) {
-    var paymentTime = new Date(payment.transferred_at).getTime();
-    var paymentLast4 = payment.payer_las4 || payment.payer_last4;
-    return String(paymentLast4 || '') === last4 &&
-      Number(payment.amount) === amount &&
-      !isNaN(paymentTime) &&
-      paymentTime >= windowStart.getTime() &&
-      paymentTime <= windowEnd.getTime();
-  });
-}
-
-function listPayments_(filters, token) {
-  var items = [];
-  for (var page = 1; ; page += 1) {
-    var query = ['page=' + page, 'pageSize=100'];
-    filters.forEach(function (filter) {
-      query.push('filter=' + encodeURIComponent(filter.join(',')));
-    });
-    var response = odoApiRequest_('/public/payments?' + query.join('&'), 'get', undefined, token);
-    var rows = response.data || [];
-    items = items.concat(rows);
-    var total = response.pagination && response.pagination.total;
-    if (rows.length === 0 || rows.length < 100 ||
-        (total !== undefined && items.length >= total)) break;
-  }
-  return items;
-}
-
-function finalizeBookingForPayment_(payment, token) {
-  var bookingPaymentStatus = payment.payment_type === 'deposit'
-    ? 'deposit_paid'
-    : 'paid';
-  odoApiRequest_(
-    '/bookings/' + encodeURIComponent(payment.booking_id),
-    'patch',
-    {
-      status: 'confirmed',
-      payment_status: bookingPaymentStatus,
-      confirmed_at: new Date().toISOString()
-    },
-    token
-  );
-}
-
-function loginOdoAdmin_() {
-  var properties = PropertiesService.getScriptProperties();
-  var response = odoApiRequest_('/auth/login', 'post', {
-    account: requiredProperty_(properties, 'ODO_ADMIN_ACCOUNT'),
-    password: requiredProperty_(properties, 'ODO_ADMIN_PASSWORD')
-  });
-  var data = response.data || response;
-  if (!data.access_token) throw new Error('API 登入成功但沒有 access_token');
-  return data.access_token;
-}
-
-function odoApiRequest_(path, method, payload, token) {
-  var properties = PropertiesService.getScriptProperties();
-  var baseUrl = requiredProperty_(properties, 'ODO_API_BASE_URL').replace(/\/$/, '');
-  var headers = {
-    'X-API-KEY': requiredProperty_(properties, 'ODO_API_KEY')
-  };
-  if (token) headers.Authorization = 'Bearer ' + token;
-
-  var options = {
-    method: method,
-    headers: headers,
-    muteHttpExceptions: true
-  };
-  if (payload !== undefined) {
-    options.contentType = 'application/json';
-    options.payload = JSON.stringify(payload);
-  }
-
-  var response = UrlFetchApp.fetch(baseUrl + path, options);
-  var status = response.getResponseCode();
-  var text = response.getContentText();
-  var body = {};
-  if (text) {
-    try {
-      body = JSON.parse(text);
-    } catch (error) {
-      body = { message: text };
-    }
-  }
-  if (status < 200 || status >= 300) {
-    var apiError = new Error(
-      'Ode API HTTP ' + status + ': ' + (body.message || text)
+/**
+ * 銀行通知通常不含年份。以收信時間為基準，在前一年、當年、後一年中
+ * 選擇時間距離最近者，可正確處理跨年收到的 12/31 或 01/01 通知。
+ */
+function inferBankOccurredAt_(month, day, hour, minute, referenceDate, timeZone) {
+  var referenceYear = Number(Utilities.formatDate(referenceDate, timeZone, 'yyyy'));
+  var candidates = [referenceYear - 1, referenceYear, referenceYear + 1].map(function (year) {
+    return Utilities.parseDate(
+      year + '/' + pad2_(month) + '/' + pad2_(day) + ' ' +
+        pad2_(hour) + ':' + pad2_(minute),
+      timeZone,
+      'yyyy/MM/dd HH:mm'
     );
-    apiError.httpStatus = status;
-    throw apiError;
-  }
-  return body;
+  });
+
+  candidates.sort(function (left, right) {
+    return Math.abs(left.getTime() - referenceDate.getTime()) -
+      Math.abs(right.getTime() - referenceDate.getTime());
+  });
+  return candidates[0];
 }
 
-function parseMetadata_(value) {
-  if (!value) return {};
-  if (typeof value === 'object') return value;
+function sendBankEventToWorkflow_(payload) {
+  validateConfig_();
+  var baseUrl = CONFIG.API_BASE_URL.replace(/\/$/, '');
+
+  var response = UrlFetchApp.fetch(
+    baseUrl + '/workflow/' + encodeURIComponent(CONFIG.WORKFLOW_ID) + '/execute',
+    {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    }
+  );
+
+  var httpStatus = response.getResponseCode();
+  var responseText = response.getContentText();
+
+  if (httpStatus < 200 || httpStatus >= 300) {
+    throw new Error('Webhook HTTP ' + httpStatus + ': ' + responseText);
+  }
+
+  // 這個 endpoint 只確認事件已接收；付款更新會在 workflow 內非同步執行。
+  if (!responseText) {
+    return { accepted: true, httpStatus: httpStatus };
+  }
+
   try {
-    return JSON.parse(value);
+    return JSON.parse(responseText);
   } catch (error) {
-    return {};
+    return {
+      accepted: true,
+      httpStatus: httpStatus,
+      responseText: responseText
+    };
   }
 }
 
-function requiredProperty_(properties, name) {
-  var value = properties.getProperty(name);
-  if (!value) throw new Error('缺少 Apps Script 指令碼屬性：' + name);
-  return value;
+function pad2_(value) {
+  return String(value).padStart(2, '0');
+}
+
+function validateConfig_() {
+  if (!CONFIG.API_BASE_URL || CONFIG.API_BASE_URL.indexOf('你的網域') !== -1) {
+    throw new Error('請先設定 CONFIG.API_BASE_URL');
+  }
 }

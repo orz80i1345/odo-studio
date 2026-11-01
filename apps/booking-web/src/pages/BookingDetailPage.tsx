@@ -64,6 +64,7 @@ export function BookingDetailPage() {
 
   const bank = bankAccounts?.find((b) => b.isDefault) ?? bankAccounts?.[0]
   const showBankInfo = isPendingPayment(booking)
+  const canLinkLine = booking.status === 'confirmed' && booking.paymentStatus === 'paid'
   const canCancel = booking.status === 'pending' || booking.status === 'confirmed'
   const paymentLabel = booking.depositAmount >= booking.totalPrice ? '應付全額' : '訂金'
   const payment = payments?.find((item) => item.status === 'pending' || item.status === 'failed') ?? payments?.[0]
@@ -209,6 +210,22 @@ export function BookingDetailPage() {
                 </button>
               </div>
             </form>
+          )}
+
+          {canLinkLine && (
+            <section className="rounded-xl border border-[#06c755]/40 bg-[#06c755]/10 p-6">
+              <p className="text-xs uppercase tracking-[0.18em] text-ink-3">LINE Notification</p>
+              <h3 className="mt-2 font-serif text-xl text-ink">用 LINE 接收門鎖密碼</h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-2">
+                綁定後，門鎖密碼將於預約前依排程傳送至 LINE；若 LINE 無法傳送，仍會以 Email 通知。
+              </p>
+              <Link
+                to={`/line/link?bookingId=${booking.id}`}
+                className="mt-5 inline-flex h-11 items-center rounded-lg bg-[#06c755] px-5 text-sm font-medium text-white hover:bg-[#05b64d]"
+              >
+                綁定 LINE 帳號
+              </Link>
+            </section>
           )}
 
           {/* 客戶備註 */}

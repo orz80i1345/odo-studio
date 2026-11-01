@@ -420,7 +420,14 @@ export function toBookingCreate(input: CreateBookingInput, totals: { subtotal: n
     customer_note: input.customerNote,
     source: 'web',
     booking_mode: input.bookingMode ?? 'scenes',
-    metadata: '{}',
+    metadata: JSON.stringify(input.discount?.commissionPartnerName
+      ? {
+        commission_partner_name: input.discount.commissionPartnerName,
+        commission_base_rate: input.discount.commissionBaseRate,
+        commission_customer_rate: input.discount.discountType === 'percent' ? input.discount.discountAmount : undefined,
+        commission_amount: input.discount.commissionAmount ?? 0,
+      }
+      : {}),
   }
 }
 

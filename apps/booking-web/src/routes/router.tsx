@@ -38,6 +38,7 @@ import { FAQPage } from '../pages/FAQPage'
 import { ContactPage } from '../pages/ContactPage'
 import { PrivacyPage } from '../pages/PrivacyPage'
 import { TermsPage } from '../pages/TermsPage'
+import { LineLinkPage } from '../pages/LineLinkPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 
 export const router = createBrowserRouter([
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
           { path: '/bookings/:bookingId',               element: <BookingDetailPage /> },
           { path: '/my-bookings',                       element: <MyBookingsPage /> },
           { path: '/account',                           element: <AccountPage /> },
+          { path: '/line/link',                         element: <LineLinkPage /> },
         ],
       },
 

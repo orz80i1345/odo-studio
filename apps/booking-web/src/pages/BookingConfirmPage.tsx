@@ -295,7 +295,7 @@ export function BookingConfirmPage() {
             </div>
             {appliedDiscount && (
               <p className="border-l border-success px-3 py-2 text-sm text-success-subtle-ink">
-                已套用 {appliedDiscount.code}，每小時折 NT$ {appliedDiscount.discountAmount.toLocaleString()}。
+                已套用 {appliedDiscount.code}，{discountDescription(appliedDiscount)}。
               </p>
             )}
             {discountError && (
@@ -377,6 +377,12 @@ export function BookingConfirmPage() {
       </div>
     </div>
   )
+}
+
+function discountDescription(discount: AppliedDiscount) {
+  if (discount.discountType === 'percent') return `享 ${discount.discountAmount} 折`
+  if (discount.discountType === 'fixed_amount') return `總金額折 NT$ ${discount.discountAmount.toLocaleString()}`
+  return `每小時折 NT$ ${discount.discountAmount.toLocaleString()}`
 }
 
 function ContactRow({ label, value }: { label: string; value: string }) {

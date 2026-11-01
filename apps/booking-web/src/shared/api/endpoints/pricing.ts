@@ -38,7 +38,10 @@ export async function listScenePrices(api: ApiClient, params?: { sceneIds?: ID[]
     filter: filters,
     sort: 'scene_id,-created_at',
   })
-  return toScaffoldList(res, toScenePrice).items satisfies ScenePrice[]
+  return latestByKey(
+    toScaffoldList(res, toScenePrice).items,
+    (price) => String(price.sceneId),
+  ) satisfies ScenePrice[]
 }
 
 export async function saveScenePrice(api: ApiClient, input: { sceneId: ID; hourlyPrice: number; priceId?: ID; isActive?: boolean }) {
@@ -64,7 +67,10 @@ export async function listStudioPrices(api: ApiClient, params?: { studioIds?: ID
     filter: filters,
     sort: 'studio_id,-created_at',
   })
-  return toScaffoldList(res, toStudioPrice).items satisfies StudioPrice[]
+  return latestByKey(
+    toScaffoldList(res, toStudioPrice).items,
+    (price) => `${price.studioId}:${price.priceType}`,
+  ) satisfies StudioPrice[]
 }
 
 export async function saveStudioPrice(api: ApiClient, input: { studioId: ID; hourlyPrice: number; priceId?: ID; priceType?: StudioPrice['priceType']; isActive?: boolean }) {
@@ -79,4 +85,20 @@ export async function saveStudioPrice(api: ApiClient, input: { studioId: ID; hou
     ? await api.patch<ScaffoldItemResponse<RawStudioPrice>>(`/studio_prices/${input.priceId}`, payload)
     : await api.post<ScaffoldItemResponse<RawStudioPrice>>('/studio_prices', payload)
   return toStudioPrice(unwrapItem(res))
+}
+
+function latestByKey<T extends { id: ID; createdAt: string; updatedAt: string }>(items: T[], keyOf: (item: T) => string) {
+  const latest = new Map<string, T>()
+  for (const item of items) {
+    const key = keyOf(item)
+    const current = latest.get(key)
+    if (!current || modificationTime(item) > modificationTime(current)) latest.set(key, item)
+  }
+  return [...latest.values()]
+}
+
+function modificationTime(item: { id: ID; createdAt: string; updatedAt: string }) {
+  const timestamp = Date.parse(item.updatedAt || item.createdAt)
+  if (Number.isFinite(timestamp)) return timestamp
+  return Number(item.id) || 0
 }

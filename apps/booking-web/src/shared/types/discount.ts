@@ -9,6 +9,8 @@ export interface DiscountCode {
   discountType: DiscountType
   discountAmount: number
   isActive: boolean
+  commissionPartnerName?: string
+  commissionBaseRate?: number
   metadata: Record<string, unknown>
 }
 
@@ -19,4 +21,7 @@ export interface AppliedDiscount {
   discountAmount: number
   discountTotal: number
   totalPrice: number
+  commissionPartnerName?: string
+  commissionBaseRate?: number
+  commissionAmount?: number
 }

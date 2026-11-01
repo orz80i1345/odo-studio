@@ -55,12 +55,19 @@ export async function validateHourlyDiscountCode(
 ): Promise<AppliedDiscount> {
   const discount = await getDiscountCodeByCode(api, input.code)
   if (!discount.isActive) throw new Error('折扣碼未啟用')
-  if (discount.discountType !== 'hourly_fixed') throw new Error('此折扣碼目前不適用於線上預約')
-
-  const discountTotal = Math.min(
-    Math.max(0, Math.round(discount.discountAmount * input.totalHours)),
-    Math.max(0, Math.round(input.subtotal)),
-  )
+  const subtotal = Math.max(0, Math.round(input.subtotal))
+  const customerRate = discount.discountType === 'percent'
+    ? Math.min(10, Math.max(0, discount.discountAmount))
+    : undefined
+  const rawDiscount = discount.discountType === 'hourly_fixed'
+    ? discount.discountAmount * input.totalHours
+    : discount.discountType === 'fixed_amount'
+      ? discount.discountAmount
+      : subtotal * (1 - (customerRate ?? 10) / 10)
+  const discountTotal = Math.min(Math.max(0, Math.round(rawDiscount)), subtotal)
+  const commissionAmount = discount.discountType === 'percent' && discount.commissionPartnerName && discount.commissionBaseRate != null
+    ? Math.max(0, Math.round(subtotal * ((customerRate ?? 0) - discount.commissionBaseRate) / 10))
+    : undefined
 
   return {
     code: discount.code,
@@ -68,7 +75,10 @@ export async function validateHourlyDiscountCode(
     discountType: discount.discountType,
     discountAmount: discount.discountAmount,
     discountTotal,
-    totalPrice: Math.max(0, Math.round(input.subtotal) - discountTotal),
+    totalPrice: Math.max(0, subtotal - discountTotal),
+    commissionPartnerName: discount.commissionPartnerName,
+    commissionBaseRate: discount.commissionBaseRate,
+    commissionAmount,
   }
 }
 
@@ -77,6 +87,11 @@ export function normalizeCode(code: string) {
 }
 
 function toDiscountCode(raw: RawDiscountCode): DiscountCode {
+  const metadata = raw.metadata ?? {}
+  const partnerName = typeof metadata.commission_partner_name === 'string'
+    ? metadata.commission_partner_name.trim()
+    : ''
+  const baseRate = Number(metadata.commission_base_rate)
   return {
     id: raw.id,
     code: raw.code,
@@ -84,7 +99,9 @@ function toDiscountCode(raw: RawDiscountCode): DiscountCode {
     discountType: raw.discount_type,
     discountAmount: Number(raw.discount_amount ?? 0),
     isActive: raw.is_active ?? true,
-    metadata: raw.metadata ?? {},
+    commissionPartnerName: partnerName || undefined,
+    commissionBaseRate: Number.isFinite(baseRate) ? baseRate : undefined,
+    metadata,
   }
 }
 

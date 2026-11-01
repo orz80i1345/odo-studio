@@ -12,13 +12,13 @@ import { handleMock, MockHttpError } from './mock/handlers'
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
-const apiBaseUrl = import.meta.env.DEV
+export const API_BASE_URL = import.meta.env.DEV
   ? `${window.location.origin}/api`
   : (import.meta.env.VITE_API_BASE_URL ?? 'https://cv3op1ht.cgapps.dev/api')
 
 /** 真實 ApiClient：從環境變數讀 baseUrl，token 由 authStorage 動態提供 */
 const realApi = createApiClient({
-  baseUrl: apiBaseUrl,
+  baseUrl: API_BASE_URL,
   getToken: () => authStorage.getToken(),
   onUnauthorized: () => {
     authStorage.clearAll()

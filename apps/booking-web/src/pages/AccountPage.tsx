@@ -100,11 +100,37 @@ export function AccountPage() {
           </div>
         </form>
 
-        <aside className="rounded-xl border border-line bg-sunken/50 p-5">
-          <h2 className="font-serif text-lg text-ink">預約資料帶入</h2>
-          <p className="mt-2 text-sm leading-6 text-ink-2">
-            修改後，下一次預約確認頁會自動帶入新的姓名與電話；既有訂單資料不會被回寫。
-          </p>
+        <aside className="space-y-4">
+          <section className="rounded-xl border border-[#06c755]/40 bg-[#06c755]/10 p-5">
+            <p className="text-xs uppercase tracking-[0.18em] text-ink-3">LINE Notification</p>
+            <h2 className="mt-2 font-serif text-lg text-ink">
+              {user?.lineStatus ? 'LINE 帳號已綁定' : '綁定 LINE 帳號'}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-ink-2">
+              {user?.lineStatus
+                ? '已完成綁定，預約通知與門鎖密碼將透過 LINE 發送。'
+                : '綁定後，可透過 LINE 接收預約通知與門鎖密碼，不需要等到付款完成才能設定。'}
+            </p>
+            {user?.lineStatus ? (
+              <span className="mt-4 inline-flex h-10 items-center rounded-lg border border-[#06c755]/40 bg-white/40 px-4 text-sm font-medium text-[#05883c]">
+                已綁定
+              </span>
+            ) : (
+              <Link
+                to="/line/link"
+                className="mt-4 inline-flex h-10 items-center rounded-lg bg-[#06c755] px-4 text-sm font-medium text-white hover:bg-[#05b64d]"
+              >
+                綁定 LINE 帳號
+              </Link>
+            )}
+          </section>
+
+          <section className="rounded-xl border border-line bg-sunken/50 p-5">
+            <h2 className="font-serif text-lg text-ink">預約資料帶入</h2>
+            <p className="mt-2 text-sm leading-6 text-ink-2">
+              修改後，下一次預約確認頁會自動帶入新的姓名與電話；既有訂單資料不會被回寫。
+            </p>
+          </section>
         </aside>
       </div>
     </div>

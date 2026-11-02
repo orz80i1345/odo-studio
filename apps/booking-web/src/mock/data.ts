@@ -15,6 +15,7 @@ export const mockCustomer: CustomerAccount = {
   phone: '0912345678',
   displayName: '示範顧客',
   marketingOptIn: false,
+  lineStatus: false,
   locale: 'zh-TW',
   isActive: true,
   createdAt: now(),

@@ -24,6 +24,7 @@ interface AuthContextValue {
   login: (input: LoginInput) => Promise<void>
   register: (input: RegisterInput) => Promise<void>
   updateProfile: (input: UpdateCustomerProfileInput) => Promise<void>
+  refreshProfile: () => Promise<CustomerAccount>
   logout: () => void
 }
 
@@ -33,20 +34,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient()
   const [user, setUser] = useState<CustomerAccount | null>(() => authStorage.getUser())
 
+  const refreshProfile = useCallback(async () => {
+    const currentUser = await customerAuthApi.getCurrentCustomerProfile(api)
+    authStorage.setUser(currentUser)
+    setUser(currentUser)
+    qc.setQueryData(queryKeys.customerAuth.me, currentUser)
+    return currentUser
+  }, [qc])
+
   // 初次載入若有 token，跟 API 校正目前登入者，避免 localStorage 留著舊資料。
   useEffect(() => {
     const token = authStorage.getToken()
     if (token) {
-      customerAuthApi.getCurrentCustomerProfile(api).then(
-        (u) => {
-          authStorage.setUser(u)
-          setUser(u)
-        },
-        () => authStorage.clearAll(),
-      )
+      refreshProfile().catch(() => authStorage.clearAll())
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [refreshProfile])
 
   const login = useCallback(async (input: LoginInput) => {
     const session = await customerAuthApi.customerLogin(api, input)
@@ -86,8 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [qc])
 
   const value = useMemo<AuthContextValue>(() => ({
-    user, isAuthenticated: !!user, login, register, updateProfile, logout,
-  }), [user, login, register, updateProfile, logout])
+    user, isAuthenticated: !!user, login, register, updateProfile, refreshProfile, logout,
+  }), [user, login, register, updateProfile, refreshProfile, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

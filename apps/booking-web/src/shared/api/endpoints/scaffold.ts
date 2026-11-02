@@ -236,6 +236,7 @@ export interface RawCustomerAccount {
   email_verified_at?: string
   phone_verified_at?: string
   marketing_opt_in?: boolean
+  line_status?: boolean | string | number | null
   locale?: string
   is_active?: boolean
   created_at?: string
@@ -530,11 +531,18 @@ export function toCustomer(raw: RawCustomerAccount): CustomerAccount {
     emailVerifiedAt: raw.email_verified_at,
     phoneVerifiedAt: raw.phone_verified_at,
     marketingOptIn: raw.marketing_opt_in ?? false,
+    lineStatus: toLinkedLineStatus(raw.line_status),
     locale: raw.locale ?? 'zh-TW',
     isActive: raw.is_active ?? true,
     createdAt: raw.created_at ?? '',
     updatedAt: raw.updated_at ?? '',
   }
+}
+
+function toLinkedLineStatus(value: RawCustomerAccount['line_status']): boolean {
+  if (value === true || value === 1) return true
+  if (typeof value !== 'string') return false
+  return ['true', 'linked', 'active'].includes(value.trim().toLowerCase())
 }
 
 export function monthAvailability(studioId: ID, yearMonth: string, slots: TimeSlot[]): MonthAvailability {

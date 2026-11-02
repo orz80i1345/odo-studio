@@ -13,6 +13,7 @@ export interface CustomerAccount {
   emailVerifiedAt?: DateString
   phoneVerifiedAt?: DateString
   marketingOptIn: boolean
+  lineStatus: boolean
   locale: string
   isActive: boolean
   createdAt: DateString

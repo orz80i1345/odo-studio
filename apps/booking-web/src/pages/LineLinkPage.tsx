@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { api, API_BASE_URL } from '../lib'
+import { customerAuthApi } from '@studio/shared'
+import { authStorage } from '../auth/storage'
+import { useAuth } from '../auth/AuthContext'
+import { api } from '../lib'
 
 type LinkState = 'initializing' | 'authorizing' | 'binding' | 'success' | 'verified' | 'error'
 
@@ -11,6 +14,7 @@ interface LineProfile {
 }
 
 export function LineLinkPage() {
+  const { refreshProfile } = useAuth()
   const [params] = useSearchParams()
   const bookingId = params.get('bookingId')
   const [state, setState] = useState<LinkState>('initializing')
@@ -37,24 +41,48 @@ export function LineLinkPage() {
       const accessToken = liff.getAccessToken()
       if (!accessToken) throw new Error('無法取得 LINE access token，請重新開啟綁定頁。')
 
-      setState('binding')
-      const verifiedProfile = await getVerifiedLineProfile(accessToken)
+      const liffProfile = await liff.getProfile().catch(() => null)
+      const decodedIdToken = liff.getDecodedIDToken()
+      const lineUserId = liffProfile?.userId ?? decodedIdToken?.sub
+      const lineDisplayName = liffProfile?.displayName ?? decodedIdToken?.name
       if (cancelled) return
-      if (!verifiedProfile.userId) {
-        throw new Error('LINE 驗證成功，但回應中沒有 userId，請確認 /line/login-profile 的回應格式。')
+      if (!lineUserId) {
+        throw new Error('無法取得 LINE userId，請確認 LIFF 已啟用 openid 或 profile scope 後重新授權。')
       }
-      setProfile(verifiedProfile)
+      setProfile({
+        userId: lineUserId,
+        displayName: lineDisplayName,
+        pictureUrl: liffProfile?.pictureUrl ?? decodedIdToken?.picture,
+      })
 
       if (!linkEndpoint) {
         setState('verified')
         return
       }
 
-      await api.post(linkEndpoint, {
+      const websiteToken = authStorage.getToken()
+      if (!websiteToken) throw new Error('網站登入已失效，請重新登入後再綁定 LINE。')
+
+      const websiteUser = await customerAuthApi.getCustomerMe(api)
+      if (cancelled) return
+      const websiteUserId = Number(websiteUser.userId)
+      if (!Number.isInteger(websiteUserId) || websiteUserId <= 0) {
+        throw new Error('無法取得網站會員 ID，請重新登入後再綁定 LINE。')
+      }
+
+      setState('binding')
+      await submitLineLinkRequest(linkEndpoint, {
+        websiteAccessToken: websiteToken,
+        userId: websiteUserId,
+        lineUserId,
+        lineDisplayName,
         lineAccessToken: accessToken,
+        lineProfileSource: liffProfile ? 'liff_profile' : 'liff_id_token',
+        lineProfileVerified: false,
         bookingId: parseBookingId(bookingId),
         source: 'booking_web',
       })
+      await refreshProfile()
       if (!cancelled) setState('success')
     }
 
@@ -67,7 +95,7 @@ export function LineLinkPage() {
     return () => {
       cancelled = true
     }
-  }, [bookingId])
+  }, [bookingId, refreshProfile])
 
   const bookingPath = bookingId ? `/bookings/${bookingId}` : '/account'
 
@@ -79,8 +107,21 @@ export function LineLinkPage() {
         {(state === 'initializing' || state === 'authorizing' || state === 'binding') && (
           <>
             <h1 className="mt-6 font-serif text-2xl text-ink">{statusTitle(state)}</h1>
-            <p className="mt-3 text-sm leading-6 text-ink-2">請保留此頁面，完成後會自動顯示結果。</p>
-            <div className="mx-auto mt-6 size-6 animate-spin rounded-full border-2 border-line-strong border-t-[#06c755]" />
+            <p className="mt-3 text-sm leading-6 text-ink-2">{statusDescription(state)}</p>
+            <div role="status" aria-live="polite" className="mt-7 flex flex-col items-center">
+              <div className="relative size-16" aria-hidden="true">
+                <div className="absolute inset-0 rounded-full border-2 border-[#06c755]/20" />
+                <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-r-[#06c755] border-t-[#06c755] motion-reduce:animate-none" />
+                <div className="absolute inset-3 animate-pulse rounded-full bg-[#06c755]/15 motion-reduce:animate-none" />
+                <div className="absolute inset-[1.35rem] rounded-full bg-[#06c755]" />
+              </div>
+              <div className="mt-5 flex items-center gap-1.5" aria-hidden="true">
+                <span className="size-1.5 animate-pulse rounded-full bg-[#06c755] motion-reduce:animate-none" />
+                <span className="size-1.5 animate-pulse rounded-full bg-[#06c755] [animation-delay:180ms] motion-reduce:animate-none" />
+                <span className="size-1.5 animate-pulse rounded-full bg-[#06c755] [animation-delay:360ms] motion-reduce:animate-none" />
+              </div>
+              <span className="sr-only">處理中，請稍候</span>
+            </div>
           </>
         )}
 
@@ -96,7 +137,7 @@ export function LineLinkPage() {
 
         {state === 'verified' && (
           <>
-            <h1 className="mt-6 font-serif text-2xl text-ink">LINE 帳號驗證成功</h1>
+            <h1 className="mt-6 font-serif text-2xl text-ink">LINE 授權成功</h1>
             <p className="mt-3 text-sm leading-6 text-warning-subtle-ink">
               {profile?.displayName ? `已辨識 ${profile.displayName}，` : ''}
               但尚未設定帳號綁定 workflow，目前還未寫入綁定資料。
@@ -124,38 +165,25 @@ export function LineLinkPage() {
   )
 }
 
-async function getVerifiedLineProfile(accessToken: string): Promise<LineProfile> {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, '')}/line/login-profile`, {
+async function submitLineLinkRequest(linkEndpoint: string, payload: Record<string, unknown>) {
+  if (!/^https?:\/\//i.test(linkEndpoint)) {
+    await api.post(linkEndpoint, payload)
+    return
+  }
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const websiteToken = authStorage.getToken()
+  if (websiteToken) headers.Authorization = `Bearer ${websiteToken}`
+
+  const response = await fetch(linkEndpoint, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
+    body: JSON.stringify(payload),
   })
-  const payload = await response.json().catch(() => ({})) as Record<string, unknown>
   if (!response.ok) {
-    throw new Error(typeof payload.message === 'string' ? payload.message : 'LINE access token 驗證失敗')
+    const message = await response.text().catch(() => '')
+    throw new Error(message || `LINE 綁定 endpoint 回傳 HTTP ${response.status}`)
   }
-  return normalizeLineProfile(payload)
-}
-
-function normalizeLineProfile(payload: Record<string, unknown>): LineProfile {
-  const data = unwrapResponse(payload)
-  return {
-    userId: stringValue(data.userId) ?? stringValue(data.user_id) ?? stringValue(data.sub),
-    displayName: stringValue(data.displayName) ?? stringValue(data.display_name) ?? stringValue(data.name),
-    pictureUrl: stringValue(data.pictureUrl) ?? stringValue(data.picture_url) ?? stringValue(data.picture),
-  }
-}
-
-function unwrapResponse(payload: Record<string, unknown>): Record<string, unknown> {
-  let current = payload
-  for (let depth = 0; depth < 4; depth += 1) {
-    const nested = objectValue(current.data) ?? objectValue(current.body)
-    if (!nested) break
-    current = nested
-  }
-  return current
 }
 
 function parseBookingId(value: string | null) {
@@ -164,18 +192,14 @@ function parseBookingId(value: string | null) {
   return Number.isInteger(id) && id > 0 ? id : undefined
 }
 
-function objectValue(value: unknown) {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : undefined
-}
-
-function stringValue(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined
-}
-
 function statusTitle(state: LinkState) {
   if (state === 'authorizing') return '正在前往 LINE 授權'
-  if (state === 'binding') return '正在驗證並綁定 LINE'
+  if (state === 'binding') return '正在綁定 LINE 帳號'
   return '正在初始化 LINE'
+}
+
+function statusDescription(state: LinkState) {
+  if (state === 'binding') return '正在等待系統完成綁定，請勿關閉或重新整理此頁面。'
+  if (state === 'authorizing') return '即將開啟 LINE 授權，完成後會自動返回。'
+  return '正在準備 LINE 服務，請稍候。'
 }

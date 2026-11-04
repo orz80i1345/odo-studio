@@ -27,9 +27,13 @@ import {
   listEquipmentItems,
 } from './equipment'
 import { cancelPendingPayments, createPendingPayment, submitBankTransferProof } from './payments'
+import { isPastIsoDateTime } from '../../utils/date'
 
 /** 建立預約（登入會員） */
 export async function createBooking(api: ApiClient, input: CreateBookingInput) {
+  if (isPastIsoDateTime(input.startAt)) {
+    throw new Error('此預約時段已經過，請重新選擇。')
+  }
   const bookingMode = input.bookingMode ?? 'scenes'
   const slots = await getBookingSlots(api, input)
   if (slots.length === 0 || slots.some((slot) => slot.status !== 'available')) {

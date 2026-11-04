@@ -65,8 +65,16 @@ export async function validateHourlyDiscountCode(
       ? discount.discountAmount
       : subtotal * (1 - (customerRate ?? 10) / 10)
   const discountTotal = Math.min(Math.max(0, Math.round(rawDiscount)), subtotal)
-  const commissionAmount = discount.discountType === 'percent' && discount.commissionPartnerName && discount.commissionBaseRate != null
-    ? Math.max(0, Math.round(subtotal * ((customerRate ?? 0) - discount.commissionBaseRate) / 10))
+  const baseDiscountTotal = discount.commissionBaseValue == null
+    ? undefined
+    : calculateBaseDiscountTotal(
+      discount.discountType,
+      discount.commissionBaseValue,
+      subtotal,
+      input.totalHours,
+    )
+  const commissionAmount = discount.commissionPartnerName && baseDiscountTotal != null
+    ? Math.max(0, Math.round(baseDiscountTotal - discountTotal))
     : undefined
 
   return {
@@ -77,7 +85,7 @@ export async function validateHourlyDiscountCode(
     discountTotal,
     totalPrice: Math.max(0, subtotal - discountTotal),
     commissionPartnerName: discount.commissionPartnerName,
-    commissionBaseRate: discount.commissionBaseRate,
+    commissionBaseValue: discount.commissionBaseValue,
     commissionAmount,
   }
 }
@@ -91,7 +99,7 @@ function toDiscountCode(raw: RawDiscountCode): DiscountCode {
   const partnerName = typeof metadata.commission_partner_name === 'string'
     ? metadata.commission_partner_name.trim()
     : ''
-  const baseRate = Number(metadata.commission_base_rate)
+  const baseValue = Number(metadata.commission_base_value ?? metadata.commission_base_rate)
   return {
     id: raw.id,
     code: raw.code,
@@ -100,9 +108,23 @@ function toDiscountCode(raw: RawDiscountCode): DiscountCode {
     discountAmount: Number(raw.discount_amount ?? 0),
     isActive: raw.is_active ?? true,
     commissionPartnerName: partnerName || undefined,
-    commissionBaseRate: Number.isFinite(baseRate) ? baseRate : undefined,
+    commissionBaseValue: Number.isFinite(baseValue) ? baseValue : undefined,
     metadata,
   }
+}
+
+function calculateBaseDiscountTotal(
+  discountType: DiscountType,
+  baseValue: number,
+  subtotal: number,
+  totalHours: number,
+) {
+  const rawBaseDiscount = discountType === 'hourly_fixed'
+    ? baseValue * totalHours
+    : discountType === 'fixed_amount'
+      ? baseValue
+      : subtotal * (1 - Math.min(10, Math.max(0, baseValue)) / 10)
+  return Math.min(subtotal, Math.max(0, Math.round(rawBaseDiscount)))
 }
 
 function toDiscountCodePayload(input: DiscountCodeInput) {

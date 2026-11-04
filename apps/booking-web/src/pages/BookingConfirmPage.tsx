@@ -14,7 +14,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ApiError, Button, discountCodesApi, Spinner, type AppliedDiscount, type ID } from '@studio/shared'
+import { ApiError, Button, discountCodesApi, isPastIsoDateTime, Spinner, type AppliedDiscount, type ID } from '@studio/shared'
 import { useStudio } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
 import { useDaySlots } from '../hooks/useAvailability'
@@ -138,9 +138,28 @@ export function BookingConfirmPage() {
     )
   }
 
+  if (isPastIsoDateTime(startAt)) {
+    return (
+      <div className="mx-auto max-w-md rounded-xl border border-line bg-neutral-subtle p-8 text-center">
+        <p className="font-serif text-xl text-ink">此預約時段已經過</p>
+        <p className="mt-2 text-sm text-ink-2">請回到月曆重新選擇尚未開始的日期與時段。</p>
+        <Link
+          to={`/book/${studioIdNum}`}
+          className="mt-6 inline-flex h-10 items-center rounded-lg bg-brand px-5 text-sm font-medium text-brand-on hover:bg-brand-hover"
+        >
+          回到月曆
+        </Link>
+      </div>
+    )
+  }
+
   const onSubmit = handleSubmit(async (values) => {
     try {
       setServerError(null)
+      if (isPastIsoDateTime(startAt)) {
+        setServerError('此預約時段已經過，請重新選擇。')
+        return
+      }
       if (!user?.email || !user.displayName || !user.phone) {
         setServerError('會員資料不完整，請先補齊姓名、電話與 Email。')
         return
@@ -162,7 +181,7 @@ export function BookingConfirmPage() {
       })
       nav(`/bookings/${booking.id}/success`, { replace: true })
     } catch (e) {
-      setServerError(e instanceof ApiError ? e.message : '送出失敗，請稍後再試')
+      setServerError(e instanceof ApiError ? e.message : e instanceof Error ? e.message : '送出失敗，請稍後再試')
     }
   })
 

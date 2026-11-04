@@ -423,7 +423,10 @@ export function toBookingCreate(input: CreateBookingInput, totals: { subtotal: n
     metadata: JSON.stringify(input.discount?.commissionPartnerName
       ? {
         commission_partner_name: input.discount.commissionPartnerName,
-        commission_base_rate: input.discount.commissionBaseRate,
+        commission_discount_type: input.discount.discountType,
+        commission_base_value: input.discount.commissionBaseValue,
+        commission_base_rate: input.discount.discountType === 'percent' ? input.discount.commissionBaseValue : undefined,
+        commission_customer_value: input.discount.discountAmount,
         commission_customer_rate: input.discount.discountType === 'percent' ? input.discount.discountAmount : undefined,
         commission_amount: input.discount.commissionAmount ?? 0,
       }

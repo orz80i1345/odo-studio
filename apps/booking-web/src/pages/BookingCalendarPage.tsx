@@ -12,9 +12,8 @@
  * 月份切換：狀態內建 yearMonth（預設當月），MonthCalendar 呼叫 onChangeMonth 更新。
  */
 import { useMemo, useState } from 'react'
-import { format } from 'date-fns'
 import { Link, useNavigate, useParams } from 'react-router'
-import { Spinner, cn, type ID } from '@studio/shared'
+import { Spinner, cn, isPastIsoDateTime, taipeiDateString, type ID } from '@studio/shared'
 import { useStudio } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
 import { useScenePrices, useStudioBuyoutPrice } from '../hooks/usePricing'
@@ -37,7 +36,7 @@ export function BookingCalendarPage() {
     [scenePrices],
   )
 
-  const [yearMonth, setYearMonth] = useState(() => format(new Date(), 'yyyy-MM'))
+  const [yearMonth, setYearMonth] = useState(() => taipeiDateString().slice(0, 7))
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedSceneIds, setSelectedSceneIds] = useState<ID[]>([])
   const [forceBuyout, setForceBuyout] = useState(false)
@@ -49,6 +48,7 @@ export function BookingCalendarPage() {
   if (!studio) return <p className="py-16 text-center text-ink-2">找不到攝影棚。</p>
 
   function onSlotConfirm({ startAt, endAt, sceneIds, bookingMode }: { startAt: string; endAt: string; sceneIds: number[]; bookingMode: 'scenes' | 'buyout' }) {
+    if (isPastIsoDateTime(startAt)) return
     const qs = new URLSearchParams({
       start: startAt,
       end: endAt,

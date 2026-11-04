@@ -4,9 +4,9 @@
  * 若第二次點的比第一次早，就當作重選起點。
  * 中間如果有 booked 就阻擋選取。
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Spinner, cn, type ID, type TimeSlot } from '@studio/shared'
+import { Spinner, cn, isPastTaipeiSlot, taipeiDateMinuteToIso, type ID, type TimeSlot } from '@studio/shared'
 import { useDaySlots } from '../../hooks/useAvailability'
 import { formatMinuteRange } from '../../utils/time'
 import { api } from '../../lib'
@@ -51,8 +51,22 @@ export function TimeSlotPicker({
 }: Props) {
   const { data, isLoading, isError } = useDaySlots(studioId, date)
   const [range, setRange] = useState<{ startIdx: number; endIdx: number } | null>(null)
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   const slots = data?.slots ?? []
+  const selectableSlotIds = useMemo(
+    () => new Set(
+      slots
+        .filter((slot) => slot.status === 'available' && !isPastTaipeiSlot(date, slot.startMinute, now))
+        .map((slot) => slot.id),
+    ),
+    [date, now, slots],
+  )
   const priceBySceneId = useMemo(
     () => new Map(scenePrices.map((price) => [price.sceneId, price.hourlyPrice])),
     [scenePrices],
@@ -91,11 +105,6 @@ export function TimeSlotPicker({
     const last = slots[range.endIdx]
     if (!first || !last) return null
     const minutes = last.endMinute - first.startMinute
-    const iso = (m: number) => {
-      const [y, mo, d] = date.split('-').map(Number)
-      const dt = new Date(y, mo - 1, d, Math.floor(m / 60), m % 60)
-      return dt.toISOString()
-    }
     const selectedSlots = slots.slice(range.startIdx, range.endIdx + 1)
     const hourlyPrice = bookingMode === 'buyout'
       ? buyoutHourlyPrice ?? fallbackHourlyPrice
@@ -103,14 +112,15 @@ export function TimeSlotPicker({
     const unavailableSceneIds = effectiveSceneIds.filter((sceneId) =>
       selectedSlots.some((slot) => occupiedSceneIdsBySlotId.get(slot.id)?.has(sceneId)))
     return {
-      startAt: iso(first.startMinute),
-      endAt: iso(last.endMinute),
+      startAt: taipeiDateMinuteToIso(date, first.startMinute),
+      endAt: taipeiDateMinuteToIso(date, last.endMinute),
       minutes,
       hourlyPrice,
       unavailableSceneIds,
+      hasPastSlot: selectedSlots.some((slot) => !selectableSlotIds.has(slot.id)),
       totalPrice: Math.round(hourlyPrice * (minutes / 60)),
     }
-  }, [bookingMode, buyoutHourlyPrice, date, effectiveSceneIds, fallbackHourlyPrice, occupiedSceneIdsBySlotId, priceBySceneId, range, selectedSceneIds, slots])
+  }, [bookingMode, buyoutHourlyPrice, date, effectiveSceneIds, fallbackHourlyPrice, occupiedSceneIdsBySlotId, priceBySceneId, range, selectableSlotIds, selectedSceneIds, slots])
 
   const sceneAvailability = useMemo(() => {
     const selectedSlots = range ? slots.slice(range.startIdx, range.endIdx + 1) : []
@@ -129,14 +139,14 @@ export function TimeSlotPicker({
 
   function toggle(idx: number) {
     const s = slots[idx]
-    if (!s || s.status !== 'available') return
+    if (!s || !selectableSlotIds.has(s.id)) return
     if (!range) return setRange({ startIdx: idx, endIdx: idx })
     // 已經選出一段區間後，再點任何可用時段都視為重新選起點。
     if (range.endIdx > range.startIdx) return setRange({ startIdx: idx, endIdx: idx })
     // 已有起點
     if (idx < range.startIdx) return setRange({ startIdx: idx, endIdx: idx })
     // 檢查中間全部是 available
-    const blocked = slots.slice(range.startIdx, idx + 1).some((x) => x.status !== 'available')
+    const blocked = slots.slice(range.startIdx, idx + 1).some((x) => !selectableSlotIds.has(x.id))
     if (blocked) return setRange({ startIdx: idx, endIdx: idx })
     setRange({ startIdx: range.startIdx, endIdx: idx })
   }
@@ -145,27 +155,27 @@ export function TimeSlotPicker({
     if (!value) return setRange(null)
     const idx = Number(value)
     const slot = slots[idx]
-    if (!slot || slot.status !== 'available') return
+    if (!slot || !selectableSlotIds.has(slot.id)) return
     setRange({ startIdx: idx, endIdx: idx })
   }
 
   function selectEnd(value: string) {
     if (!range || !value) return
     const idx = Number(value)
-    const blocked = slots.slice(range.startIdx, idx + 1).some((slot) => slot.status !== 'available')
+    const blocked = slots.slice(range.startIdx, idx + 1).some((slot) => !selectableSlotIds.has(slot.id))
     if (idx < range.startIdx || blocked) return
     setRange({ startIdx: range.startIdx, endIdx: idx })
   }
 
   const startOptions = slots
     .map((slot, idx) => ({ slot, idx }))
-    .filter(({ slot }) => slot.status === 'available')
+    .filter(({ slot }) => selectableSlotIds.has(slot.id))
   const endOptions = range
     ? slots
       .map((slot, idx) => ({ slot, idx }))
       .filter(({ slot, idx }) => {
-        if (idx < range.startIdx || slot.status !== 'available') return false
-        return !slots.slice(range.startIdx, idx + 1).some((item) => item.status !== 'available')
+        if (idx < range.startIdx || !selectableSlotIds.has(slot.id)) return false
+        return !slots.slice(range.startIdx, idx + 1).some((item) => !selectableSlotIds.has(item.id))
       })
     : []
 
@@ -195,7 +205,7 @@ export function TimeSlotPicker({
     ? summary.unavailableSceneIds.length > 0
     : false
   const hasSelection = effectiveSceneIds.length > 0
-  const meetsMin = summary && summary.minutes >= minBookingMinutes && hasSelection && !buyoutUnavailable
+  const meetsMin = summary && summary.minutes >= minBookingMinutes && hasSelection && !buyoutUnavailable && !summary.hasPastSlot
 
   return (
     <div className="space-y-8 border-y border-line py-8">
@@ -247,6 +257,7 @@ export function TimeSlotPicker({
             slot={s}
             selected={!!range && i >= range.startIdx && i <= range.endIdx}
             isEnd={!!range && (i === range.startIdx || i === range.endIdx)}
+            disabled={!selectableSlotIds.has(s.id)}
             onClick={() => toggle(i)}
           />
         ))}
@@ -301,6 +312,9 @@ export function TimeSlotPicker({
               {buyoutUnavailable && (
                 <div className="mt-0.5 text-danger">所選區間已有空間被預約，無法包場。</div>
               )}
+              {summary.hasPastSlot && (
+                <div className="mt-0.5 text-danger">所選時段已經過，請重新選擇。</div>
+              )}
             </>
           ) : (
             <span className="text-ink-3">尚未選擇時段</span>
@@ -325,9 +339,8 @@ export function TimeSlotPicker({
 }
 
 function SlotCell({
-  slot, selected, isEnd, onClick,
-}: { slot: TimeSlot; selected: boolean; isEnd: boolean; onClick: () => void }) {
-  const disabled = slot.status !== 'available'
+  slot, selected, isEnd, disabled, onClick,
+}: { slot: TimeSlot; selected: boolean; isEnd: boolean; disabled: boolean; onClick: () => void }) {
   return (
     <li>
       <button
@@ -338,8 +351,8 @@ function SlotCell({
           'w-full border-0 px-4 py-4 text-left text-base transition-colors duration-500 sm:px-2 sm:py-3 sm:text-center sm:text-sm',
           disabled && 'cursor-not-allowed bg-neutral-subtle text-ink-3 line-through',
           !disabled && !selected && 'bg-canvas text-ink hover:bg-surface',
-          selected && !isEnd && 'bg-brand-subtle text-brand-subtle-ink',
-          isEnd && 'bg-brand text-brand-on',
+          !disabled && selected && !isEnd && 'bg-brand-subtle text-brand-subtle-ink',
+          !disabled && isEnd && 'bg-brand text-brand-on',
         )}
       >
         {formatMinuteRange(slot.startMinute, slot.endMinute)}

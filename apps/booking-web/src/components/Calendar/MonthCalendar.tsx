@@ -5,9 +5,10 @@
  * - 點日格 → onSelectDate(iso)；父層負責在下方渲染時段。
  * - 週工作日 header 走 ink-3；今日 ring-brand；週末底 sunken。
  */
-import { addMonths, format, isSameDay, startOfMonth, startOfWeek } from 'date-fns'
+import { useEffect, useState } from 'react'
+import { addMonths, format, startOfMonth, startOfWeek } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn, type DayAvailability, type ID } from '@studio/shared'
+import { cn, isPastTaipeiDate, taipeiDateString, type DayAvailability, type ID } from '@studio/shared'
 import { useMonthAvailability } from '../../hooks/useAvailability'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
@@ -23,6 +24,12 @@ interface Props {
 
 export function MonthCalendar({ studioId, yearMonth, onChangeMonth, selectedDate, onSelectDate }: Props) {
   const { data, isLoading } = useMonthAvailability(studioId, yearMonth)
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   const [y, m] = yearMonth.split('-').map(Number)
   const monthStart = new Date(y, m - 1, 1)
@@ -89,12 +96,13 @@ export function MonthCalendar({ studioId, yearMonth, onChangeMonth, selectedDate
           const iso = format(d, 'yyyy-MM-dd')
           const inMonth = d.getMonth() === monthStart.getMonth()
           const day = dayMap.get(iso)
-          const isToday = isSameDay(d, new Date())
+          const isToday = iso === taipeiDateString(now)
+          const isPast = isPastTaipeiDate(iso, now)
           const isWeekend = d.getDay() === 0 || d.getDay() === 6
           const selected = selectedDate === iso
 
           const disabled =
-            isLoading || !data || !inMonth || !day || day.isClosed || day.availableCount === 0
+            isLoading || !data || !inMonth || isPast || !day || day.isClosed || day.availableCount === 0
 
           return (
             <DayCell
@@ -103,6 +111,7 @@ export function MonthCalendar({ studioId, yearMonth, onChangeMonth, selectedDate
               dayNumber={d.getDate()}
               inMonth={inMonth}
               isToday={isToday}
+              isPast={isPast}
               isWeekend={isWeekend}
               selected={selected}
               disabled={!!disabled}
@@ -119,6 +128,7 @@ export function MonthCalendar({ studioId, yearMonth, onChangeMonth, selectedDate
         <Legend swatch="bg-brand-subtle" label="可預約" />
         <Legend swatch="bg-neutral-subtle" label="已滿" />
         <Legend swatch="bg-neutral-subtle" label="公休" />
+        <Legend swatch="bg-neutral-subtle" label="已過" />
         <span className="ml-auto">週末以較深底色標示；今日以邊框標示。</span>
       </div>
     </div>
@@ -139,6 +149,7 @@ interface DayCellProps {
   dayNumber: number
   inMonth: boolean
   isToday: boolean
+  isPast: boolean
   isWeekend: boolean
   selected: boolean
   disabled: boolean
@@ -148,7 +159,7 @@ interface DayCellProps {
 }
 
 function DayCell({
-  dayNumber, inMonth, isToday, isWeekend, selected, disabled, loading, day, onClick,
+  dayNumber, inMonth, isToday, isPast, isWeekend, selected, disabled, loading, day, onClick,
 }: DayCellProps) {
   const base = 'relative border-b border-r border-line px-3 py-3 min-h-[96px] text-left transition-colors duration-500'
   const state = day?.isClosed
@@ -176,6 +187,8 @@ function DayCell({
         <span className={cn('text-2xl font-normal', isToday && 'border-b border-brand')}>{dayNumber}</span>
         {loading ? (
           <span className="text-[10px] text-ink-3">…</span>
+        ) : isPast ? (
+          <span className="text-[10px] text-ink-3">已過</span>
         ) : day ? (
           day.isClosed ? (
             <span className="text-[10px] text-ink-3">公休</span>

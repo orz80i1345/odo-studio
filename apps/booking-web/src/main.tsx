@@ -9,12 +9,17 @@ import { RouterProvider } from 'react-router/dom'
 import { AuthProvider } from './auth/AuthContext'
 import { router } from './routes/router'
 import { queryClient } from './lib'
+import { GlobalLoadingIndicator } from './components/ui/GlobalLoadingIndicator'
+import { isLineInAppBrowser } from './utils/browser'
 import './index.css'
+
+document.documentElement.classList.toggle('line-webview', isLineInAppBrowser())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <GlobalLoadingIndicator />
         <RouterProvider router={router} />
       </AuthProvider>
     </QueryClientProvider>

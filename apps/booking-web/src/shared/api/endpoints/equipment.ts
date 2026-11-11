@@ -86,8 +86,10 @@ export async function createBookingEquipment(api: ApiClient, params: { bookingId
       time_slot_id: timeSlotId,
     })))
 
-  await api.post('/booking_equipment_items/batch', itemPayload)
-  await api.post('/booking_equipment_time_slots/batch', slotPayload)
+  await Promise.all([
+    api.post('/booking_equipment_items/batch', itemPayload),
+    api.post('/booking_equipment_time_slots/batch', slotPayload),
+  ])
 }
 
 export async function deleteBookingEquipment(api: ApiClient, bookingId: ID) {

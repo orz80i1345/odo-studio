@@ -12,7 +12,7 @@
  * 月份切換：狀態內建 yearMonth（預設當月），MonthCalendar 呼叫 onChangeMonth 更新。
  */
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Spinner, cn, isPastIsoDateTime, taipeiDateString, type ID } from '@studio/shared'
 import { useStudio } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
@@ -24,6 +24,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 export function BookingCalendarPage() {
   const { studioId } = useParams<{ studioId: string }>()
   const nav = useNavigate()
+  const [params] = useSearchParams()
 
   const studioIdNum = studioId ? Number(studioId) : undefined
   const { data: studio, isLoading } = useStudio(studioIdNum)
@@ -38,7 +39,7 @@ export function BookingCalendarPage() {
 
   const [yearMonth, setYearMonth] = useState(() => taipeiDateString().slice(0, 7))
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedSceneIds, setSelectedSceneIds] = useState<ID[]>([])
+  const [selectedSceneIds, setSelectedSceneIds] = useState<ID[]>(() => parseInitialSceneIds(params.get('scenes')))
   const [forceBuyout, setForceBuyout] = useState(false)
 
   const eyebrow = useMemo(() => (studio ? `預約 · ${studio.name}` : '預約'), [studio])
@@ -157,6 +158,11 @@ export function BookingCalendarPage() {
       </div>
     </div>
   )
+}
+
+function parseInitialSceneIds(value: string | null): ID[] {
+  if (!value) return []
+  return [...new Set(value.split(',').map(Number).filter((id) => Number.isInteger(id) && id > 0))]
 }
 
 function ModeCard({

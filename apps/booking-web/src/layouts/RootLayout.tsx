@@ -7,9 +7,11 @@ import { LogIn, LogOut, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '@studio/shared'
 import { useAuth } from '../auth/AuthContext'
+import { isLineInAppBrowser } from '../utils/browser'
 
 const navItems = [
   { to: '/spaces', label: '空間' },
+  { to: '/equipment', label: '器材' },
   { to: '/pricing', label: '價格' },
   { to: '/faq', label: 'FAQ' },
 ]
@@ -18,6 +20,7 @@ export function RootLayout() {
   const { user, isAuthenticated, logout } = useAuth()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const lineWebView = isLineInAppBrowser()
 
   useEffect(() => {
     setMenuOpen(false)
@@ -40,7 +43,10 @@ export function RootLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
       {/* header */}
-      <header className="sticky top-0 z-20 border-b border-line/80 bg-canvas/40 backdrop-blur-md">
+      <header className={cn(
+        'line-webview-no-backdrop sticky top-0 z-20 border-b border-line/80',
+        lineWebView ? 'bg-canvas/95' : 'bg-canvas/40 backdrop-blur-md',
+      )}>
         <div className="relative flex h-16 w-full items-center justify-between px-5 md:px-8">
           <Link to="/" className="flex items-baseline gap-2.5">
             <span className="font-serif text-xl leading-none text-ink">河日</span>
@@ -110,7 +116,8 @@ export function RootLayout() {
           tabIndex={menuOpen ? 0 : -1}
           onClick={() => setMenuOpen(false)}
           className={cn(
-            'fixed inset-x-0 bottom-0 top-16 z-0 bg-ink/10 backdrop-blur-[2px] transition-opacity duration-500 md:hidden',
+            'line-webview-no-backdrop fixed inset-x-0 bottom-0 top-16 z-0 bg-ink/10 transition-opacity duration-500 md:hidden',
+            !lineWebView && 'backdrop-blur-[2px]',
             menuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
           )}
         />
@@ -118,7 +125,8 @@ export function RootLayout() {
         <div
           aria-hidden={!menuOpen}
           className={cn(
-            'absolute inset-x-0 top-full z-10 origin-top border-t border-line bg-canvas/95 px-5 py-7 shadow-raised backdrop-blur-xl transition-[opacity,transform,visibility] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:hidden',
+            'line-webview-no-backdrop absolute inset-x-0 top-full z-10 origin-top border-t border-line bg-canvas/95 px-5 py-7 shadow-raised transition-[opacity,transform,visibility] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:hidden',
+            !lineWebView && 'backdrop-blur-xl',
             menuOpen
               ? 'visible translate-y-0 scale-y-100 opacity-100'
               : 'invisible pointer-events-none -translate-y-4 scale-y-95 opacity-0',
@@ -194,6 +202,7 @@ export function RootLayout() {
             <div className="mb-5 text-[11px] uppercase tracking-[0.28em] text-ink-3">Space</div>
             <ul className="space-y-3 text-ink-2">
               <li><Link to="/spaces" className="hover:text-ink">空間介紹</Link></li>
+              <li><Link to="/equipment" className="hover:text-ink">器材租借</Link></li>
               <li><Link to="/pricing" className="hover:text-ink">價格</Link></li>
             </ul>
           </div>

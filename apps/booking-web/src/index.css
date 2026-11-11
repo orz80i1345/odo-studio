@@ -1,6 +1,24 @@
 /* booking-web 入口樣式：主題來自 @studio/shared/theme.css */
 @import '@studio/shared/theme.css';
 
+@keyframes network-loading-slide {
+  0% {
+    transform: translate3d(-120%, 0, 0) scaleX(0.45);
+  }
+  55% {
+    transform: translate3d(85%, 0, 0) scaleX(0.8);
+  }
+  100% {
+    transform: translate3d(240%, 0, 0) scaleX(0.35);
+  }
+}
+
+.network-loading-bar {
+  transform-origin: left center;
+  animation: network-loading-slide 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  will-change: transform;
+}
+
 /* 捲動進場：短距離上浮，搭配輕微失焦，讓內容自然回到版面位置。 */
 .scroll-reveal {
   opacity: 0;
@@ -21,7 +39,28 @@
   will-change: auto;
 }
 
+/* LINE 內建瀏覽器對 backdrop blur、filter 動畫與持續 will-change 的成本較高。 */
+.line-webview .scroll-reveal,
+.line-webview .scroll-reveal--visible {
+  opacity: 1;
+  filter: none;
+  transform: none;
+  transition: none;
+  will-change: auto;
+}
+
+.line-webview .line-webview-no-backdrop {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .network-loading-bar {
+    animation: none;
+    transform: none;
+    width: 100%;
+  }
+
   .scroll-reveal,
   .scroll-reveal--visible {
     opacity: 1;

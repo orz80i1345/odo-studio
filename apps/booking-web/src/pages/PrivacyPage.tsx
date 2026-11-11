@@ -21,7 +21,7 @@ export function PrivacyPage() {
           本站僅使用維持登入狀態必要的 cookie 與 localStorage；未使用第三方追蹤 cookie。
         </Section>
         <Section title="5. 聯絡我們">
-          若對本政策有任何疑問，請寄信至 hello@ode.studio。
+          若對本政策有任何疑問，請寄信至 odestudio.co@gmail.com。
         </Section>
       </article>
     </div>

@@ -25,6 +25,7 @@ interface AuthContextValue {
   register: (input: RegisterInput) => Promise<void>
   updateProfile: (input: UpdateCustomerProfileInput) => Promise<void>
   refreshProfile: () => Promise<CustomerAccount>
+  markLineLinked: () => void
   logout: () => void
 }
 
@@ -80,6 +81,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     qc.setQueryData(queryKeys.customerAuth.me, currentUser)
   }, [qc, user])
 
+  const markLineLinked = useCallback(() => {
+    setUser((current) => {
+      if (!current) return current
+      const linked = { ...current, lineStatus: true }
+      authStorage.setUser(linked)
+      qc.setQueryData(queryKeys.customerAuth.me, linked)
+      return linked
+    })
+  }, [qc])
+
   const logout = useCallback(() => {
     customerAuthApi.customerLogout(api).catch(() => {})
     authStorage.clearAll()
@@ -88,8 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [qc])
 
   const value = useMemo<AuthContextValue>(() => ({
-    user, isAuthenticated: !!user, login, register, updateProfile, refreshProfile, logout,
-  }), [user, login, register, updateProfile, refreshProfile, logout])
+    user, isAuthenticated: !!user, login, register, updateProfile, refreshProfile, markLineLinked, logout,
+  }), [user, login, register, updateProfile, refreshProfile, markLineLinked, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

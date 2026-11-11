@@ -31,8 +31,14 @@ export async function listDiscountCodes(api: ApiClient) {
 
 export async function getDiscountCodeByCode(api: ApiClient, code: string) {
   const normalized = normalizeCode(code)
-  const res = await api.get<ScaffoldItemResponse<RawDiscountCode>>(`/public/discount_codes/by_code/${encodeURIComponent(normalized)}`)
-  return toDiscountCode(unwrapItem(res))
+  const res = await api.get<ScaffoldListResponse<RawDiscountCode>>('/public/discount_codes', {
+    pageSize: 10,
+    filter: `code,eq,${normalized}`,
+  })
+  const raw = toScaffoldList(res, (item) => item).items
+    .find((item) => normalizeCode(item.code) === normalized)
+  if (!raw) throw new Error('找不到此折扣碼')
+  return toDiscountCode(raw)
 }
 
 export async function createDiscountCode(api: ApiClient, input: DiscountCodeInput) {

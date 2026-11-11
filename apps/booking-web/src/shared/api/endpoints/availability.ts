@@ -38,7 +38,14 @@ export async function getMonthAvailability(api: ApiClient, studioId: ID, yearMon
   const monthStart = `${yearMonth}-01`
   const nextMonth = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, '0')}-01`
   const summary = await listDailyAvailability(api, studioId, monthStart, nextMonth)
-  if (summary.length > 0) return monthAvailabilityFromSummary(studioId, yearMonth, summary)
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const summarizedDates = new Set(summary.map((item) => dateOnly(item.availability_date)))
+  const hasPotentiallyStaleClosedDay = summary.some((item) =>
+    item.is_closed === true && (item.total_count ?? 0) === 0,
+  )
+  if (summarizedDates.size === daysInMonth && !hasPotentiallyStaleClosedDay) {
+    return monthAvailabilityFromSummary(studioId, yearMonth, summary)
+  }
 
   const slots = await listAllTimeSlots(api, {
     filter: [
@@ -48,7 +55,10 @@ export async function getMonthAvailability(api: ApiClient, studioId: ID, yearMon
     ],
     sort: 'slot_date,start_minute',
   })
-  return monthAvailability(studioId, yearMonth, slots) satisfies MonthAvailability
+  const slotsAvailability = monthAvailability(studioId, yearMonth, slots) satisfies MonthAvailability
+  if (summary.length === 0) return slotsAvailability
+
+  return monthAvailabilityFromSummary(studioId, yearMonth, summary, slotsAvailability)
 }
 
 /** 某日詳細時段（點日格後展開清單） */
@@ -83,20 +93,40 @@ function monthAvailabilityFromSummary(
   studioId: ID,
   yearMonth: string,
   summary: RawStudioDailyAvailability[],
+  fallback?: MonthAvailability,
 ): MonthAvailability {
   const [year, month] = yearMonth.split('-').map(Number)
   const daysInMonth = new Date(year, month, 0).getDate()
   const summaryByDate = new Map(summary.map((item) => [dateOnly(item.availability_date), item]))
+  const fallbackByDate = new Map(fallback?.days.map((day) => [day.date, day]) ?? [])
   const days: DayAvailability[] = Array.from({ length: daysInMonth }, (_, i) => {
     const date = `${yearMonth}-${String(i + 1).padStart(2, '0')}`
     const item = summaryByDate.get(date)
+    const fallbackDay = fallbackByDate.get(date)
+    if (!item) {
+      return fallbackDay ?? {
+        date,
+        isClosed: true,
+        availableCount: 0,
+        totalCount: 0,
+        priceMultiplier: undefined,
+      }
+    }
+    const summaryTotalCount = item.total_count ?? 0
+    const summaryAvailableCount = item.available_count ?? 0
+    if (
+      fallbackDay &&
+      (summaryTotalCount !== fallbackDay.totalCount || summaryAvailableCount !== fallbackDay.availableCount)
+    ) {
+      return fallbackDay
+    }
     return {
       date,
-      isClosed: item?.is_closed ?? true,
-      openStartMinute: item?.open_start_minute ?? undefined,
-      openEndMinute: item?.open_end_minute ?? undefined,
-      availableCount: item?.available_count ?? 0,
-      totalCount: item?.total_count ?? 0,
+      isClosed: item.is_closed ?? true,
+      openStartMinute: item.open_start_minute ?? undefined,
+      openEndMinute: item.open_end_minute ?? undefined,
+      availableCount: summaryAvailableCount,
+      totalCount: summaryTotalCount,
       priceMultiplier: undefined,
     }
   })

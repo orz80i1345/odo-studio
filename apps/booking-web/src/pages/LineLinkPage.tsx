@@ -4,6 +4,7 @@ import { customerAuthApi } from '@studio/shared'
 import { authStorage } from '../auth/storage'
 import { useAuth } from '../auth/AuthContext'
 import { api } from '../lib'
+import { withNetworkActivity } from '../networkActivity'
 
 type LinkState = 'initializing' | 'authorizing' | 'binding' | 'success' | 'verified' | 'error'
 
@@ -14,7 +15,7 @@ interface LineProfile {
 }
 
 export function LineLinkPage() {
-  const { refreshProfile } = useAuth()
+  const { markLineLinked } = useAuth()
   const [params] = useSearchParams()
   const bookingId = params.get('bookingId')
   const [state, setState] = useState<LinkState>('initializing')
@@ -82,7 +83,7 @@ export function LineLinkPage() {
         bookingId: parseBookingId(bookingId),
         source: 'booking_web',
       })
-      await refreshProfile()
+      markLineLinked()
       if (!cancelled) setState('success')
     }
 
@@ -95,7 +96,7 @@ export function LineLinkPage() {
     return () => {
       cancelled = true
     }
-  }, [bookingId, refreshProfile])
+  }, [bookingId, markLineLinked])
 
   const bookingPath = bookingId ? `/bookings/${bookingId}` : '/account'
 
@@ -127,10 +128,10 @@ export function LineLinkPage() {
 
         {state === 'success' && (
           <>
-            <h1 className="mt-6 font-serif text-2xl text-ink">LINE 綁定資料已送出</h1>
+            <h1 className="mt-6 font-serif text-2xl text-ink">LINE 帳號已綁定</h1>
             <p className="mt-3 text-sm leading-6 text-ink-2">
               {profile?.displayName ? `已驗證 ${profile.displayName}。` : '已驗證 LINE 帳號。'}
-              系統完成綁定後，門鎖密碼將於預約前依排程發送。
+              門鎖密碼將於預約前依排程發送。
             </p>
           </>
         )}
@@ -175,15 +176,17 @@ async function submitLineLinkRequest(linkEndpoint: string, payload: Record<strin
   const websiteToken = authStorage.getToken()
   if (websiteToken) headers.Authorization = `Bearer ${websiteToken}`
 
-  const response = await fetch(linkEndpoint, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
+  await withNetworkActivity(async () => {
+    const response = await fetch(linkEndpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    })
+    if (!response.ok) {
+      const message = await response.text().catch(() => '')
+      throw new Error(message || `LINE 綁定 endpoint 回傳 HTTP ${response.status}`)
+    }
   })
-  if (!response.ok) {
-    const message = await response.text().catch(() => '')
-    throw new Error(message || `LINE 綁定 endpoint 回傳 HTTP ${response.status}`)
-  }
 }
 
 function parseBookingId(value: string | null) {

@@ -17,9 +17,11 @@ import { useStudio } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
 import { useActiveBankAccounts } from '../hooks/useBankAccounts'
 import { useBookingEquipment } from '../hooks/useEquipment'
+import { useBookingPayments } from '../hooks/usePayments'
 import { BookingSummary } from '../components/Booking/BookingSummary'
 import { BankTransferInfo } from '../components/Booking/BankTransferInfo'
 import { BookingStatusBadge } from '../components/Booking/BookingStatusBadge'
+import { PaymentProofForm } from '../components/Booking/PaymentProofForm'
 
 export function BookingSuccessPage() {
   const { bookingId } = useParams<{ bookingId: string }>()
@@ -30,6 +32,7 @@ export function BookingSuccessPage() {
   const { data: scenes } = useScenes(booking?.studioId)
   const { data: bankAccounts } = useActiveBankAccounts()
   const { data: bookingEquipment } = useBookingEquipment(bookingIdNum)
+  const { data: payments } = useBookingPayments(bookingIdNum)
 
   if (isLoading) return <div className="py-16 text-center"><Spinner /></div>
   if (!booking || !studio) return <p className="py-16 text-center text-ink-2">找不到此預約。</p>
@@ -41,6 +44,7 @@ export function BookingSuccessPage() {
   const paymentLabel = booking.depositAmount >= booking.totalPrice ? '應付全額' : '訂金'
   const equipmentNames = bookingEquipment?.map((item) => item.name) ?? []
   const equipmentTotal = bookingEquipment?.reduce((sum, item) => sum + item.subtotal, 0) ?? 0
+  const payment = payments?.find((item) => item.status === 'pending' || item.status === 'failed') ?? payments?.[0]
 
   return (
     <div className="space-y-8">
@@ -78,6 +82,8 @@ export function BookingSuccessPage() {
               收款帳號載入中…
             </div>
           )}
+
+          <PaymentProofForm booking={booking} payment={payment} />
 
           {/* CTA */}
           <div className="flex flex-wrap items-center gap-3">

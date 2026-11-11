@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@studio/shared'
+import { isLineInAppBrowser } from '../../utils/browser'
 
 interface ScrollRevealProps {
   children: ReactNode
@@ -28,6 +29,7 @@ export function ScrollReveal({
 
     if (
       !('IntersectionObserver' in window) ||
+      isLineInAppBrowser() ||
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
     ) {
       setVisible(true)

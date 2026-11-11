@@ -1,11 +1,19 @@
 /**
  * AuthLayout — 登入 / 註冊頁的極簡框：置中卡片、無 header。
  */
+import { ArrowLeft } from 'lucide-react'
 import { Link, Outlet } from 'react-router'
 
 export function AuthLayout() {
   return (
-    <div className="grid min-h-screen bg-canvas md:grid-cols-2">
+    <div className="relative grid min-h-screen bg-canvas md:grid-cols-2">
+      <Link
+        to="/"
+        aria-label="返回首頁"
+        className="absolute left-5 top-5 z-10 inline-flex size-10 items-center justify-center rounded-full border border-line bg-surface/90 text-ink-2 shadow-quiet transition-colors hover:bg-sunken hover:text-ink md:hidden"
+      >
+        <ArrowLeft className="size-5" />
+      </Link>
       {/* 左側品牌／意象 */}
       <aside className="hidden flex-col justify-between bg-[#F7F1E8] p-10 md:flex">
         <Link to="/" className="flex items-baseline gap-2">

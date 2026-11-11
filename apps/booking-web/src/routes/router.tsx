@@ -40,6 +40,7 @@ import { PrivacyPage } from '../pages/PrivacyPage'
 import { TermsPage } from '../pages/TermsPage'
 import { LineLinkPage } from '../pages/LineLinkPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { EquipmentPage } from '../pages/EquipmentPage'
 
 export const router = createBrowserRouter([
   // ---------- Auth layout（登入 / 註冊） ----------
@@ -63,6 +64,7 @@ export const router = createBrowserRouter([
       { path: '/scenes',                    element: <Navigate to="/spaces" replace /> },
       { path: '/scenes/:sceneSlug',         element: <SceneDetailPage /> },
       { path: '/pricing',                   element: <PricingPage /> },
+      { path: '/equipment',                 element: <EquipmentPage /> },
       { path: '/faq',                       element: <FAQPage /> },
       { path: '/contact',                   element: <ContactPage /> },
       { path: '/privacy',                   element: <PrivacyPage /> },

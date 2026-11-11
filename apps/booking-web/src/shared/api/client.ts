@@ -16,6 +16,9 @@ export interface ApiClientOptions {
   onUnauthorized?: () => void
   /** scaffold auth endpoints require X-API-KEY */
   apiKey?: string
+  /** 全域 request loading 狀態；每次 request 保證成對呼叫。 */
+  onRequestStart?: () => void | (() => void)
+  onRequestEnd?: () => void
 }
 
 export type ApiQueryValue = string | number | boolean | undefined
@@ -35,13 +38,14 @@ export class ApiError extends Error {
 export interface ApiClient {
   get: <T>(path: string, query?: ApiQuery) => Promise<T>
   post: <T>(path: string, body?: unknown) => Promise<T>
+  put: <T>(path: string, body?: unknown) => Promise<T>
   patch: <T>(path: string, body?: unknown) => Promise<T>
   delete: <T>(path: string) => Promise<T>
 }
 
 /** 建立 API client 實例（每個 app 各建一個） */
 export function createApiClient(options: ApiClientOptions): ApiClient {
-  const { baseUrl, getToken, onUnauthorized, apiKey } = options
+  const { baseUrl, getToken, onUnauthorized, apiKey, onRequestStart, onRequestEnd } = options
 
   /** 核心 request：組 URL、帶 token、統一 JSON 與錯誤處理 */
   async function request<T>(
@@ -50,46 +54,53 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     body?: unknown,
     query?: ApiQuery,
   ): Promise<T> {
-    const url = new URL(baseUrl.replace(/\/$/, '') + path)
-    if (query) {
-      for (const [key, value] of Object.entries(query)) {
-        const values = Array.isArray(value) ? value : [value]
-        for (const item of values) {
-          if (item !== undefined) url.searchParams.append(key, String(item))
+    const finishRequest = onRequestStart?.()
+    try {
+      const url = new URL(baseUrl.replace(/\/$/, '') + path)
+      if (query) {
+        for (const [key, value] of Object.entries(query)) {
+          const values = Array.isArray(value) ? value : [value]
+          for (const item of values) {
+            if (item !== undefined) url.searchParams.append(key, String(item))
+          }
         }
       }
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      const token = getToken?.()
+      const isPublicPath = path.startsWith('/public/')
+      if (token && !isPublicPath) headers.Authorization = `Bearer ${token}`
+      if (apiKey) headers['X-API-KEY'] = apiKey
+
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+      })
+
+      if (!res.ok) {
+        if (res.status === 401 && token) onUnauthorized?.()
+        // 嘗試讀後端錯誤訊息，失敗則用 statusText
+        const message = await res
+          .json()
+          .then((data: { message?: string }) => data.message ?? res.statusText)
+          .catch(() => res.statusText)
+        throw new ApiError(res.status, message)
+      }
+
+      // 204 No Content 直接回傳 undefined
+      if (res.status === 204) return undefined as T
+      return (await res.json()) as T
+    } finally {
+      if (typeof finishRequest === 'function') finishRequest()
+      else onRequestEnd?.()
     }
-
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    const token = getToken?.()
-    const isPublicPath = path.startsWith('/public/')
-    if (token && !isPublicPath) headers.Authorization = `Bearer ${token}`
-    if (apiKey) headers['X-API-KEY'] = apiKey
-
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    })
-
-    if (!res.ok) {
-      if (res.status === 401 && token) onUnauthorized?.()
-      // 嘗試讀後端錯誤訊息，失敗則用 statusText
-      const message = await res
-        .json()
-        .then((data: { message?: string }) => data.message ?? res.statusText)
-        .catch(() => res.statusText)
-      throw new ApiError(res.status, message)
-    }
-
-    // 204 No Content 直接回傳 undefined
-    if (res.status === 204) return undefined as T
-    return (await res.json()) as T
   }
 
   return {
     get: (path, query) => request('GET', path, undefined, query),
     post: (path, body) => request('POST', path, body),
+    put: (path, body) => request('PUT', path, body),
     patch: (path, body) => request('PATCH', path, body),
     delete: (path) => request('DELETE', path),
   }

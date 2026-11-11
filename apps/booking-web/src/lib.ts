@@ -9,6 +9,7 @@ import { QueryClient } from '@tanstack/react-query'
 import { createApiClient, ApiError, type ApiQuery } from '@studio/shared'
 import { authStorage } from './auth/storage'
 import { handleMock, MockHttpError } from './mock/handlers'
+import { beginNetworkActivity } from './networkActivity'
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
 
@@ -28,12 +29,14 @@ const realApi = createApiClient({
     }
   },
   apiKey: import.meta.env.VITE_API_KEY,
+  onRequestStart: beginNetworkActivity,
 })
 
 /** Mock ApiClient：與 realApi 同介面，但走 handlers 而非 fetch */
 const mockApi = {
   get: <T,>(path: string, query?: ApiQuery) => call<T>('GET', path, undefined, query),
   post: <T,>(path: string, body?: unknown) => call<T>('POST', path, body),
+  put: <T,>(path: string, body?: unknown) => call<T>('PUT', path, body),
   patch: <T,>(path: string, body?: unknown) => call<T>('PATCH', path, body),
   delete: <T,>(path: string) => call<T>('DELETE', path),
 }
@@ -44,6 +47,7 @@ async function call<T>(
   body?: unknown,
   query?: ApiQuery,
 ): Promise<T> {
+  const finish = beginNetworkActivity()
   const q = query
     ? '?' + new URLSearchParams(
         Object.entries(query)
@@ -56,6 +60,8 @@ async function call<T>(
   } catch (e) {
     if (e instanceof MockHttpError) throw new ApiError(e.status, e.message)
     throw e
+  } finally {
+    finish()
   }
 }
 

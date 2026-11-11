@@ -43,9 +43,12 @@ export async function createBooking(api: ApiClient, input: CreateBookingInput) {
   const equipmentItemIds = input.equipmentItemIds ?? []
   const timeSlotIds = slots.map((slot) => slot.id)
   if (sceneIds.length === 0) throw new Error('請選擇至少一個佈景。')
-  await assertSceneSlotsAvailable(api, sceneIds, timeSlotIds)
-  const equipmentItems = await getSelectedEquipmentItems(api, equipmentItemIds)
-  await assertEquipmentSlotsAvailable(api, equipmentItemIds, timeSlotIds)
+  const [equipmentItems, , , depositRatio] = await Promise.all([
+    getSelectedEquipmentItems(api, equipmentItemIds),
+    assertSceneSlotsAvailable(api, sceneIds, timeSlotIds),
+    assertEquipmentSlotsAvailable(api, equipmentItemIds, timeSlotIds),
+    getDepositRatio(api),
+  ])
   const totals = await calculateBookingTotals(api, input, slots, equipmentItems)
   const discount = input.discount?.code
     ? await validateHourlyDiscountCode(api, {
@@ -54,15 +57,18 @@ export async function createBooking(api: ApiClient, input: CreateBookingInput) {
       totalHours: calculateTotalHours(input.startAt, input.endAt),
     })
     : undefined
-  const depositRatio = await getDepositRatio(api)
   const finalTotals = applyDiscountToTotals(totals, discount?.discountTotal ?? 0, depositRatio)
   const res = await api.post<ScaffoldItemResponse<RawBooking>>('/bookings', toBookingCreate({ ...input, bookingMode, discount }, finalTotals))
   const booking = toBooking(unwrapItem(res))
   try {
-    await createPendingPayment(api, booking)
-    await createBookingSceneTimeSlots(api, booking, sceneIds, timeSlotIds)
-    await createBookingEquipment(api, { bookingId: booking.id, equipmentItems, timeSlotIds })
-    if (booking.bookingMode === 'buyout') await syncBookingTimeSlots(api, booking, 'booked')
+    const setupResults = await Promise.allSettled([
+      createPendingPayment(api, booking),
+      createBookingSceneTimeSlots(api, booking, sceneIds, timeSlotIds),
+      createBookingEquipment(api, { bookingId: booking.id, equipmentItems, timeSlotIds }),
+      booking.bookingMode === 'buyout' ? syncBookingTimeSlots(api, booking, 'booked') : Promise.resolve(),
+    ])
+    const failed = setupResults.find((result): result is PromiseRejectedResult => result.status === 'rejected')
+    if (failed) throw failed.reason
   } catch (error) {
     await deleteBookingSceneTimeSlots(api, booking.id).catch(() => {})
     await deleteBookingEquipment(api, booking.id).catch(() => {})
@@ -74,7 +80,7 @@ export async function createBooking(api: ApiClient, input: CreateBookingInput) {
     }).catch(() => {})
     throw error
   }
-  await syncDailyAvailability(api, booking.studioId, localDateFromIso(booking.startAt)).catch(() => {})
+  void syncDailyAvailability(api, booking.studioId, localDateFromIso(booking.startAt)).catch(() => {})
   return booking
 }
 
@@ -200,19 +206,15 @@ async function syncBookingTimeSlots(api: ApiClient, booking: Booking, status: 'b
 
 async function assertSceneSlotsAvailable(api: ApiClient, sceneIds: ID[], timeSlotIds: ID[]) {
   if (sceneIds.length === 0 || timeSlotIds.length === 0) return
-  for (const sceneId of sceneIds) {
-    for (const timeSlotId of timeSlotIds) {
-      const existing = await api.get<ScaffoldListResponse<RawBookingSceneTimeSlot>>('/public/booking_scene_time_slots', {
-        pageSize: 1,
-        filter: [
-          filter('scene_id', 'eq', sceneId),
-          filter('time_slot_id', 'eq', timeSlotId),
-        ],
-      })
-      if (toScaffoldList(existing, (item) => item).items.length > 0) {
-        throw new Error('所選佈景在此時段已被預約，請重新選擇佈景或時段。')
-      }
-    }
+  const existing = await api.get<ScaffoldListResponse<RawBookingSceneTimeSlot>>('/public/booking_scene_time_slots', {
+    pageSize: 1,
+    filter: [
+      filter('scene_id', 'in', sceneIds.join(',')),
+      filter('time_slot_id', 'in', timeSlotIds.join(',')),
+    ],
+  })
+  if (toScaffoldList(existing, (item) => item).items.length > 0) {
+    throw new Error('所選佈景在此時段已被預約，請重新選擇佈景或時段。')
   }
 }
 

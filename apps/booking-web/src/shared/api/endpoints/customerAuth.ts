@@ -63,12 +63,13 @@ export async function customerRegister(api: ApiClient, input: RegisterInput) {
 export async function getCustomerMe(api: ApiClient) {
   const me = unwrapItem(await api.get<UserResponse | ScaffoldItemResponse<UserResponse>>('/users/me'))
   const email = me.email ?? me.account ?? ''
+  const displayName = customerName(me.display_name ?? me.displayName, email)
   return {
     id: 0,
     userId: me.id ?? 0,
     email,
     phone: me.phone,
-    displayName: me.display_name ?? me.displayName ?? email,
+    displayName,
     marketingOptIn: false,
     lineStatus: false,
     locale: 'zh-TW',
@@ -80,8 +81,18 @@ export async function getCustomerMe(api: ApiClient) {
 
 export async function getCurrentCustomerProfile(api: ApiClient) {
   const me = await getCustomerMe(api)
-  const profile = await findCustomerProfileByUserId(api, me.userId)
-  return profile ?? me
+  const profileByUserId = await findCustomerProfileByUserId(api, me.userId).catch(() => null)
+  const profile = profileByUserId ?? await findCustomerProfileByEmail(api, me.email).catch(() => null)
+  if (!profile) return me
+
+  return {
+    ...me,
+    ...profile,
+    userId: profile.userId ?? me.userId,
+    email: profile.email || me.email,
+    displayName: customerName(profile.displayName, profile.email || me.email) ?? me.displayName,
+    phone: profile.phone ?? me.phone,
+  }
 }
 
 export async function getCustomerProfileByEmail(api: ApiClient, email: string) {
@@ -116,7 +127,8 @@ export async function updateCustomerProfile(
   const id = current.id || (await findCustomerProfileByUserId(api, current.userId))?.id
   if (!id) return createCustomerProfile(api, current.email, input)
 
-  const raw = unwrapItem(await api.patch<RawCustomerAccount | ScaffoldItemResponse<RawCustomerAccount>>(`/customer_accounts/${id}`, {
+  // CGA 的正式環境 CORS 目前未開放 PATCH；PUT 使用相同的 optional update DTO。
+  const raw = unwrapItem(await api.put<RawCustomerAccount | ScaffoldItemResponse<RawCustomerAccount>>(`/customer_accounts/${id}`, {
     display_name: input.displayName,
     phone: input.phone,
     marketing_opt_in: input.marketingOptIn ?? false,
@@ -167,7 +179,7 @@ function fallbackCustomer(email: string, displayName?: string, phone?: string): 
     id: 0,
     email,
     phone,
-    displayName: displayName ?? email,
+    displayName: customerName(displayName, email),
     marketingOptIn: false,
     lineStatus: false,
     locale: 'zh-TW',
@@ -175,4 +187,10 @@ function fallbackCustomer(email: string, displayName?: string, phone?: string): 
     createdAt: now,
     updatedAt: now,
   }
+}
+
+function customerName(value: string | undefined, email: string) {
+  const name = value?.trim()
+  if (!name || name.toLocaleLowerCase() === email.trim().toLocaleLowerCase()) return undefined
+  return name
 }

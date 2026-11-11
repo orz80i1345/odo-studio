@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import { CalendarDays } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -94,7 +95,11 @@ export function AccountPage() {
             <Button type="submit" disabled={isSubmitting || !isDirty}>
               {isSubmitting ? '儲存中…' : '儲存變更'}
             </Button>
-            <Link to="/my-bookings" className="text-sm text-ink-2 underline underline-offset-4 hover:text-ink">
+            <Link
+              to="/my-bookings"
+              className="ml-auto inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-line-strong bg-surface px-4 text-sm font-medium text-ink transition-colors hover:bg-sunken"
+            >
+              <CalendarDays className="size-4" />
               查看我的預約
             </Link>
           </div>

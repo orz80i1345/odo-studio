@@ -5,23 +5,26 @@
  *   2. 三段小介紹（自然光 / 空間 / 預約）
  *   3. 精選空間（用真的 scenes list）
  */
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { addMonths, format } from 'date-fns'
 import { Link } from 'react-router'
-import { availabilityApi, queryKeys, type Scene } from '@studio/shared'
+import { availabilityApi, queryKeys } from '@studio/shared'
 import { useStudios } from '../hooks/useStudios'
 import { useScenes } from '../hooks/useScenes'
 import { SmartImage } from '../components/ui/SmartImage'
 import { ScrollReveal } from '../components/ui/ScrollReveal'
 import { api, queryClient } from '../lib'
+import { isLineInAppBrowser } from '../utils/browser'
 
 export function HomePage() {
   const { data } = useStudios()
   const studioId = data?.items[0]?.id
   const { data: scenes } = useScenes(studioId)
+  const lineWebView = isLineInAppBrowser()
+  const heroImage = scenes?.items.find((scene) => scene.coverUrl)?.coverUrl
 
   useEffect(() => {
-    if (!studioId) return
+    if (!studioId || lineWebView) return
     const timer = window.setTimeout(() => {
       const currentMonth = format(new Date(), 'yyyy-MM')
       const nextMonth = format(addMonths(new Date(), 1), 'yyyy-MM')
@@ -34,22 +37,30 @@ export function HomePage() {
       }
     }, 3_000)
     return () => window.clearTimeout(timer)
-  }, [studioId])
+  }, [lineWebView, studioId])
 
   return (
     <div className="space-y-28 md:space-y-40">
       {/* Hero */}
       <section className="relative left-1/2 -mt-14 min-h-[calc(100vh-5rem)] w-screen -translate-x-1/2 overflow-hidden bg-sunken md:-mt-20">
-        <video
-          className="absolute inset-0 size-full object-cover"
-          src="/media/adobestock_1155955252.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          aria-hidden="true"
-        />
+        {lineWebView ? (
+          heroImage && (
+            <div className="absolute inset-0">
+              <SmartImage src={heroImage} alt="河日攝影棚" priority />
+            </div>
+          )
+        ) : (
+          <video
+            className="absolute inset-0 size-full object-cover"
+            src="/media/adobestock_1155955252.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-hidden="true"
+          />
+        )}
         <div className="absolute inset-0 bg-[#40372f]/32" />
         <div className="relative flex min-h-[calc(100vh-5rem)] items-end px-5 pb-14 pt-28 md:px-10 md:pb-20">
           <div className="w-full max-w-7xl">
@@ -119,56 +130,95 @@ export function HomePage() {
         </ScrollReveal>
       </section>
 
-      {/* 精選空間 */}
-      <section className="space-y-12">
-        <ScrollReveal className="flex items-end justify-between border-t border-line pt-10" distance={32}>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.28em] text-ink-3">04 / Space</p>
-            <h2 className="mt-4 font-serif text-5xl text-ink md:text-6xl">精選空間</h2>
-          </div>
-          <Link to="/spaces" className="hidden border-b border-line-strong pb-1 text-xs uppercase tracking-[0.22em] text-ink-2 transition-colors duration-500 hover:text-ink md:inline-flex">
-            All spaces →
-          </Link>
-        </ScrollReveal>
-        <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden">
-          <div className="mx-auto max-w-[1320px] overflow-x-auto px-5 pb-2 md:px-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex snap-x snap-mandatory gap-8 md:gap-12">
-              {scenes?.items.map((scene, index) => (
-                <FeaturedSpaceCard key={scene.id} scene={scene} priority={index < 3} index={index} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      <ParallaxSpaceSection imageUrl={heroImage} />
     </div>
   )
 }
 
-function FeaturedSpaceCard({ scene, priority, index }: { scene: Scene; priority: boolean; index: number }) {
+function ParallaxSpaceSection({ imageUrl }: { imageUrl?: string }) {
+  const sectionRef = useRef<HTMLElement>(null)
+  const imageLayerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const section = sectionRef.current
+    const imageLayer = imageLayerRef.current
+    if (!section || !imageLayer) return
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduceMotion) {
+      imageLayer.style.transform = 'translate3d(0, 0, 0) scale(1.08)'
+      return
+    }
+
+    const lineWebView = isLineInAppBrowser()
+    let visible = true
+    let animationFrame: number | undefined
+
+    const updatePosition = () => {
+      animationFrame = undefined
+      if (!visible) return
+      const rect = section.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const sectionCenter = rect.top + rect.height / 2
+      const viewportCenter = viewportHeight / 2
+      const range = (viewportHeight + rect.height) / 2
+      const progress = Math.max(-1, Math.min(1, (sectionCenter - viewportCenter) / range))
+      const maxOffset = lineWebView ? 64 : window.innerWidth < 768 ? 140 : 240
+      imageLayer.style.transform = `translate3d(0, ${progress * maxOffset}px, 0) scale(1.04)`
+    }
+
+    const requestUpdate = () => {
+      if (animationFrame !== undefined) return
+      animationFrame = window.requestAnimationFrame(updatePosition)
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry?.isIntersecting ?? false
+      if (visible) requestUpdate()
+    }, { rootMargin: '20% 0px' })
+
+    observer.observe(section)
+    window.addEventListener('scroll', requestUpdate, { passive: true })
+    window.addEventListener('resize', requestUpdate)
+    requestUpdate()
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', requestUpdate)
+      window.removeEventListener('resize', requestUpdate)
+      if (animationFrame !== undefined) window.cancelAnimationFrame(animationFrame)
+    }
+  }, [imageUrl])
+
   return (
-    <ScrollReveal
-      className="w-[78vw] shrink-0 snap-center sm:w-[44vw] lg:w-[30%]"
-      delay={Math.min(index, 3) * 80}
-      distance={42}
+    <section
+      ref={sectionRef}
+      className="relative left-1/2 min-h-[68svh] w-screen -translate-x-1/2 overflow-hidden bg-ink md:min-h-[calc(100svh-4rem)]"
     >
-      <article>
-        <Link to={`/spaces/${scene.id}`} className="group block">
-          <div className="relative aspect-[4/5] overflow-hidden bg-sunken">
-            {scene.coverUrl && (
-              <SmartImage
-                src={scene.coverUrl}
-                alt={scene.name}
-                priority={priority}
-                className="transition-transform duration-[1200ms] ease-out group-hover:scale-[1.025]"
-              />
-            )}
-          </div>
-          <div className="mx-auto mt-8 flex h-12 w-[72%] items-center justify-center bg-[oklch(0.245_0.055_35)] px-5 text-center text-[11px] uppercase tracking-[0.22em] text-ink-on transition-colors duration-500 group-hover:bg-ink">
-            {scene.name}
-          </div>
-        </Link>
-      </article>
-    </ScrollReveal>
+      {imageUrl && (
+        <div
+          ref={imageLayerRef}
+          className="absolute inset-x-0 -top-[30%] h-[160%] origin-center will-change-transform"
+        >
+          <SmartImage
+            src={imageUrl}
+            alt="河日攝影棚精選空間"
+            className="grayscale contrast-[0.92] brightness-[0.82]"
+          />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-black/15" />
+      <div className="absolute inset-0 z-10 flex items-center justify-center px-6">
+        <ScrollReveal distance={18}>
+          <Link
+            to="/spaces"
+            className="inline-flex min-h-20 min-w-[17rem] items-center justify-center border-2 border-white/85 px-9 py-5 text-center font-serif text-sm font-semibold uppercase tracking-[0.26em] text-white transition-[background-color,color,transform] duration-500 hover:scale-[1.02] hover:bg-white hover:text-ink md:min-h-24 md:min-w-[20rem] md:text-base"
+          >
+            Book your space
+          </Link>
+        </ScrollReveal>
+      </div>
+    </section>
   )
 }
 

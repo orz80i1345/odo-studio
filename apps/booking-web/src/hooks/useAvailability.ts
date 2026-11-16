@@ -4,13 +4,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { queryKeys, availabilityApi, type ID } from '@studio/shared'
 import { api } from '../lib'
+import { availabilityQueryPolicy, liveAvailabilityQueryPolicy } from '../queryPolicy'
 
 export function useMonthAvailability(studioId: ID | undefined, yearMonth: string) {
   return useQuery({
     queryKey: studioId ? queryKeys.studios.availability(studioId, yearMonth) : ['availability', 'noop'],
     queryFn: () => availabilityApi.getMonthAvailability(api, studioId!, yearMonth),
     enabled: !!studioId,
-    staleTime: 60_000,
+    ...availabilityQueryPolicy,
   })
 }
 
@@ -19,6 +20,6 @@ export function useDaySlots(studioId: ID | undefined, date: string | null) {
     queryKey: studioId && date ? queryKeys.studios.daySlots(studioId, date) : ['day-slots', 'noop'],
     queryFn: () => availabilityApi.getDaySlots(api, studioId!, date!),
     enabled: !!studioId && !!date,
-    staleTime: 10_000,
+    ...liveAvailabilityQueryPolicy,
   })
 }

@@ -10,17 +10,19 @@ export function EquipmentPage() {
   const items = data?.items ?? []
 
   return (
-    <div className="space-y-12">
-      <PageHeader
-        eyebrow="Equipment Rental"
-        title="器材租借"
-        subtitle="器材可在送出場地預約前一併選擇；實際可租狀態會依預約時段即時確認。"
-        actions={
-          <Link to="/spaces" className="text-sm text-ink-2 hover:text-ink">
-            查看空間 →
-          </Link>
-        }
-      />
+    <div className="md:space-y-12">
+      <div className="hidden md:block">
+        <PageHeader
+          eyebrow="Equipment Rental"
+          title="器材租借"
+          subtitle="器材可在送出場地預約前一併選擇；實際可租狀態會依預約時段即時確認。"
+          actions={
+            <Link to="/spaces" className="text-sm text-ink-2 hover:text-ink">
+              查看空間 →
+            </Link>
+          }
+        />
+      </div>
 
       {isLoading && <div className="py-20 text-center"><Spinner /></div>}
 
@@ -68,7 +70,7 @@ export function EquipmentPage() {
         </div>
       )}
 
-      <section className="flex flex-col gap-5 border-t border-line pt-10 sm:flex-row sm:items-center sm:justify-between">
+      <section className="mt-12 flex flex-col gap-5 border-t border-line pt-10 sm:flex-row sm:items-center sm:justify-between md:mt-0">
         <div>
           <h2 className="font-serif text-2xl text-ink">與場地預約一起租借</h2>
           <p className="mt-2 text-sm text-ink-2">選好日期與時段後，可在確認訂單頁加入尚有庫存的器材。</p>

@@ -3,6 +3,7 @@
  */
 import { ArrowLeft } from 'lucide-react'
 import { Link, Outlet } from 'react-router'
+import { BrandLogo } from '../components/ui/BrandLogo'
 
 export function AuthLayout() {
   return (
@@ -10,15 +11,14 @@ export function AuthLayout() {
       <Link
         to="/"
         aria-label="返回首頁"
-        className="absolute left-5 top-5 z-10 inline-flex size-10 items-center justify-center rounded-full border border-line bg-surface/90 text-ink-2 shadow-quiet transition-colors hover:bg-sunken hover:text-ink md:hidden"
+        className="absolute left-5 top-5 z-10 inline-flex size-10 items-center justify-center bg-transparent text-ink-2 transition duration-200 hover:-translate-x-0.5 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink md:hidden"
       >
         <ArrowLeft className="size-5" />
       </Link>
       {/* 左側品牌／意象 */}
       <aside className="hidden flex-col justify-between bg-[#F7F1E8] p-10 md:flex">
-        <Link to="/" className="flex items-baseline gap-2">
-          <span className="font-serif text-2xl text-ink">河日</span>
-          <span className="text-xs uppercase tracking-[0.2em] text-ink-3">Ode Studio</span>
+        <Link to="/" aria-label="河日 Ode Studio 首頁" className="inline-flex w-fit items-center">
+          <BrandLogo variant="full" className="w-36" />
         </Link>
         <blockquote className="font-serif text-4xl leading-tight text-ink">
           光落下的方式，決定了空間的樣子。

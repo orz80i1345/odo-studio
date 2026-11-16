@@ -2,12 +2,13 @@
  * RootLayout — 前台外殼：header + 內容 + footer。
  * header 顯示品牌識別、導覽、登入／我的預約入口。
  */
-import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { LogIn, LogOut, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '@studio/shared'
 import { useAuth } from '../auth/AuthContext'
 import { isLineInAppBrowser } from '../utils/browser'
+import { BrandLogo } from '../components/ui/BrandLogo'
 
 const navItems = [
   { to: '/spaces', label: '空間' },
@@ -48,9 +49,8 @@ export function RootLayout() {
         lineWebView ? 'bg-canvas/95' : 'bg-canvas/40 backdrop-blur-md',
       )}>
         <div className="relative flex h-16 w-full items-center justify-between px-5 md:px-8">
-          <Link to="/" className="flex items-baseline gap-2.5">
-            <span className="font-serif text-xl leading-none text-ink">河日</span>
-            <span className="text-[10px] uppercase tracking-[0.34em] text-ink-3">Ode Studio</span>
+          <Link to="/" aria-label="河日 Ode Studio 首頁" className="inline-flex items-center">
+            <BrandLogo variant="full" className="w-[76px] md:w-[82px]" />
           </Link>
 
           <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-[10px] uppercase tracking-[0.22em] md:flex">
@@ -189,14 +189,13 @@ export function RootLayout() {
         <Outlet />
       </main>
 
+      <ScrollRestoration />
+
       {/* footer */}
       <footer className="border-t border-line bg-canvas">
         <div className="mx-auto grid max-w-[1080px] gap-12 px-5 py-16 text-sm md:grid-cols-[1.4fr_1fr_1fr] md:px-8 md:py-24">
           <div>
-            <div className="font-serif text-4xl leading-none text-ink">河日</div>
-            <p className="mt-6 max-w-sm leading-7 text-ink-2">
-              位於淡水河岸邊的公寓攝影棚，白日自然光、生活感空間。
-            </p>
+            <BrandLogo variant="full" className="w-48" />
           </div>
           <div>
             <div className="mb-5 text-[11px] uppercase tracking-[0.28em] text-ink-3">Space</div>

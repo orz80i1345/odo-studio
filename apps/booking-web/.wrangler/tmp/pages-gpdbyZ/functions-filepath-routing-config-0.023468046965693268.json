@@ -1,0 +1,13 @@
+{
+  "routes": [
+    {
+      "routePath": "/email-verification/:action",
+      "mountPath": "/email-verification",
+      "method": "POST",
+      "module": [
+        "email-verification/[action].js:onRequestPost"
+      ]
+    }
+  ],
+  "baseURL": "/"
+}

@@ -4,7 +4,7 @@
  * 若第二次點的比第一次早，就當作重選起點。
  * 中間如果有 booked 就阻擋選取。
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Spinner, cn, isPastTaipeiSlot, taipeiDateMinuteToIso, type ID, type TimeSlot } from '@studio/shared'
 import { useDaySlots } from '../../hooks/useAvailability'
@@ -25,6 +25,8 @@ interface Props {
   onChangeSelectedSceneIds: (sceneIds: ID[]) => void
   forceBuyout: boolean
   onChangeForceBuyout: (value: boolean) => void
+  /** Mobile 流程中插在「下一步」操作區塊前的預約方式面板。 */
+  mobileBookingModePanel?: ReactNode
   onConfirm: (payload: { startAt: string; endAt: string; sceneIds: ID[]; bookingMode: 'scenes' | 'buyout' }) => void
 }
 
@@ -47,6 +49,7 @@ export function TimeSlotPicker({
   onChangeSelectedSceneIds,
   forceBuyout,
   onChangeForceBuyout,
+  mobileBookingModePanel,
   onConfirm,
 }: Props) {
   const { data, isLoading, isError } = useDaySlots(studioId, date)
@@ -295,6 +298,8 @@ export function TimeSlotPicker({
           <p className="text-xs text-ink-3">選擇 2 個以上空間會自動以包場價格計算，並保留所有空間。</p>
         )}
       </section>
+
+      {mobileBookingModePanel}
 
       {/* 摘要 + 確認 */}
       <div className="flex flex-col gap-5 border-t border-line pt-8 sm:flex-row sm:items-center sm:justify-between">

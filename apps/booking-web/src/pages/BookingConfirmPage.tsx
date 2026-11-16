@@ -313,7 +313,7 @@ export function BookingConfirmPage() {
               </div>
             </div>
             {appliedDiscount && (
-              <p className="border-l border-success px-3 py-2 text-sm text-success-subtle-ink">
+              <p className="border-l border-success px-3 py-2 text-sm font-medium text-ink">
                 已套用 {appliedDiscount.code}，{discountDescription(appliedDiscount)}。
               </p>
             )}

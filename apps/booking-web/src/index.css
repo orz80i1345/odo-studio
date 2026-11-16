@@ -54,6 +54,18 @@
   backdrop-filter: none;
 }
 
+/* Mobile 圓柱滾輪會無感搬移重複項目；停用進場效果，避免循環接點閃爍。 */
+@media (max-width: 767px) {
+  .scene-wheel .scroll-reveal,
+  .scene-wheel .scroll-reveal--visible {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .network-loading-bar {
     animation: none;
